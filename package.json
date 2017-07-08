@@ -1,0 +1,22 @@
+{
+  "name": "dynogame",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@tradle/custom-models": "https://github.com/tradle/custom-models",
+    "@tradle/models": "https://github.com/tradle/models",
+    "co": "^4.6.0",
+    "dynogels": "^8.0.1",
+    "graphql": "^0.10.3",
+    "graphql-date": "^1.0.3",
+    "joi": "^10.6.0",
+    "object.pick": "^1.2.0",
+    "pify": "^3.0.0",
+    "xtend": "^4.0.1"
+  },
+  "devDependencies": {
+    "express": "^4.15.3",
+    "express-graphql": "^0.6.6"
+  }
+}
