@@ -10,6 +10,7 @@
     "dynogels": "^8.0.1",
     "graphql": "^0.10.3",
     "graphql-date": "^1.0.3",
+    "graphql-type-json": "^0.1.4",
     "joi": "^10.6.0",
     "object.pick": "^1.2.0",
     "pify": "^3.0.0",
@@ -18,5 +19,8 @@
   "devDependencies": {
     "express": "^4.15.3",
     "express-graphql": "^0.6.6"
+  },
+  "scripts": {
+    "lint": "eslint --quiet --ignore-path .gitignore ."
   }
 }

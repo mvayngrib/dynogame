@@ -1,3 +1,4 @@
+const co = require('co').wrap
 const Joi = require('joi')
 const clone = require('xtend')
 const extend = require('xtend/mutable')

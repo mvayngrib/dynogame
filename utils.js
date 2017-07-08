@@ -1,7 +1,12 @@
 module.exports = {
   isEmailProperty,
   isInlinedProperty,
-  getRequiredProperties
+  getProperties,
+  getRequiredProperties,
+  getProperties,
+  getRef,
+  isInstantiable,
+  getInstantiableModels
 }
 
 function isEmailProperty ({ propertyName, property }) {
@@ -14,12 +19,41 @@ function isInlinedProperty ({
   property,
   models
 }) {
-  if (property.inlined) return true
+  const { ref, inlined, range } = property
+  if (inlined || range === 'json') return true
 
-  const propModel = models[property.ref]
-  return propModel.inlined
+  if (ref) {
+    const propModel = models[ref]
+    return propModel.inlined
+  }
+
+  return property.items && !property.items.ref
 }
 
 function getRequiredProperties (model) {
   return model.required || Object.keys(model.properties)
+}
+
+function getRef (property) {
+  return property.ref || (property.items && property.items.ref)
+}
+
+function getProperties (model) {
+  return Object.keys(model.properties)
+    .filter(propertyName => {
+      return propertyName.charAt(0) !== '_'
+    })
+}
+
+function getInstantiableModels (models) {
+  return Object.keys(models).filter(id => isInstantiable(models[id]))
+}
+
+function isInstantiable (model) {
+  const { id, isInterface } = model
+  if (id === 'tradle.Model' || isInterface) {
+    return false
+  }
+
+  return true
 }

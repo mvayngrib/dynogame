@@ -5,7 +5,8 @@ const models = {}
 modelsArray.forEach(m => models[m.id] = m)
 
 const { createSchema } = require('./schema-mapper-graphql')
-const schema = createSchema({ tables, models })
+debugger
+const schema = createSchema({ models })
 
 const app = express()
 app.use('/graphql', expressGraphQL(req => ({
@@ -14,7 +15,8 @@ app.use('/graphql', expressGraphQL(req => ({
     pretty: true
 })))
 
-app.set('port', 4000)
+const port = 4000
+app.set('port', port)
 let http = require('http')
 let server = http.createServer(app)
 server.listen(port)
