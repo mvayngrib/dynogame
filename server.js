@@ -13,7 +13,7 @@ dynogels.AWS.config.update({
 })
 
 const modelsArray = require('@tradle/models').models.concat(require('@tradle/custom-models'))
-const { normalizeModels } = require('./utils')
+const { shallowClone, normalizeModels } = require('./utils')
 const models = normalizeModels(modelsArray.reduce((map, model) => {
   map[model.id] = model
   return map
@@ -40,29 +40,55 @@ const tables = getTables({ models, objects })
 //   })
 // })
 
+const fixtures = require('./fixtures')
 co(function* () {
-  const table = tables['tradle.BasicContactInfo']
-  yield ensureTables(pick(tables, 'tradle.BasicContactInfo'))
-  yield table.create({
-    _t: 'tradle.BasicContactInfo',
-    _s: 'somesig',
-    [`${METADATA_PREFIX}author`]: 'bill',
-    [`${METADATA_PREFIX}time`]: time,
-    [`${METADATA_PREFIX}link`]: 'a',
-    [`${METADATA_PREFIX}permalink`]: 'b',
-    // object: {
-      firstName: 'bill',
-      lastName: 'preston',
-      email: 'bill@ted.io'
-    // }
-  })
+  for (const fixture of fixtures) {
+    const table = tables[fixture.object._t]
+    const flat = shallowClone(fixture, fixture.object)
+    delete flat.object
+    yield table.create(flat)
+  }
+
+  // const personalInfo = tables['tradle.PersonalInfo']
+  // const basicInfo = tables['tradle.PersonalInfo']
+  // yield ensureTables(pick(tables, 'tradle.BasicContactInfo'))
+  // yield table.create({
+  //   _t: 'tradle.BasicContactInfo',
+  //   _s: 'somesig',
+  //   [`${METADATA_PREFIX}author`]: 'bill',
+  //   [`${METADATA_PREFIX}time`]: time,
+  //   [`${METADATA_PREFIX}link`]: 'a',
+  //   [`${METADATA_PREFIX}permalink`]: 'b',
+  //   firstName: 'bill',
+  //   lastName: 'preston',
+  //   email: 'bill@ted.io',
+  // })
+
+  // yield table.create({
+  //   _t: 'tradle.BasicContactInfo',
+  //   _s: 'somesig',
+  //   [`${METADATA_PREFIX}author`]: 'bill',
+  //   [`${METADATA_PREFIX}time`]: time,
+  //   [`${METADATA_PREFIX}link`]: 'a',
+  //   [`${METADATA_PREFIX}permalink`]: 'b',
+  //   // object: {
+  //     firstName: 'bill',
+  //     lastName: 'preston',
+  //     email: 'bill@ted.io',
+  //     // maritalStatus: {
+  //     //   id: 'tradle.MaritalStatus_abc_123',
+  //     //   title: 'married'
+  //     // }
+  //   // }
+  // })
   // }, { overwrite: false })
 })().catch(console.error)
 
-const schema = createSchema({ models, tables })
+const { schema, schemas } = createSchema({ models, tables })
 
 const app = express()
-app.use('/graphql', expressGraphQL(req => ({
+const GRAPHQL_PATH = '/graphql'
+app.use(GRAPHQL_PATH, expressGraphQL(req => ({
   schema,
   graphiql: true,
   pretty: true
@@ -71,3 +97,10 @@ app.use('/graphql', expressGraphQL(req => ({
 app.set('port', port)
 let server = http.createServer(app)
 server.listen(port)
+
+const createClient = require('./client')
+const client = createClient({
+  schemas,
+  models,
+  endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
+})

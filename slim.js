@@ -18,7 +18,7 @@ const SLIM_PREFERENCES = [
 ]
 
 function getSlimVersion ({ item, model }) {
-  const all = getProperties(model)
+  const all = getProperties(model).filter(prop => prop in item)
   let chosenProps = all
   let slim = item
   for (const filter of SLIM_PREFERENCES) {
@@ -48,7 +48,9 @@ function minusPhotos ({ property }) {
 }
 
 function minusBigValues ({ value }) {
-  const str = typeof value === 'string' ? str : JSON.stringify(value)
+  if (value === undefined) debugger
+
+  const str = typeof value === 'string' ? value : JSON.stringify(value)
   return str.length < 50
 }
 

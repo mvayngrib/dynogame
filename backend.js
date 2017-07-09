@@ -6,14 +6,16 @@ const {
   pick,
   omit,
   promisify,
+  getMetadataProps
 } = require('./utils')
 const createTables = promisify(dynogels.createTables)
 const constants = require('./constants')
+const { prefix } = constants
 const slimmer = require('./slim')
 const { toJoi } = require('./joi')
+const Errors = require('./errors')
+const Prefixer = require('./prefixer')
 const { hashKey, rangeKey, indexes } = constants
-const METADATA_PREFIX = constants.prefix.metadata
-const DATA_PREFIX = constants.prefix.data
 const RESOLVED = Promise.resolve()
 // const METADATA_PREFIX = 'm'
 // const DATA_PREFIX = 'd'
@@ -28,7 +30,9 @@ const ensureTables = co(function* (tables) {
     try {
       yield ensureTablesCache[id]
     } catch (err) {
-      if (err.code !== 'ResourceInUseException') {
+      if (err.code === 'ResourceInUseException') {
+        ensureTablesCache[id] = RESOLVED
+      } else {
         delete ensureTablesCache[id]
         throw err
       }
@@ -44,10 +48,10 @@ function inflate (object) {
   }
 
   for (let prop in object) {
-    if (prop.startsWith(METADATA_PREFIX)) {
-      recovered[prop.slice(METADATA_PREFIX.length)] = object[prop]
-    } else if (prop.startsWith(DATA_PREFIX)) {
-      recovered.object[prop.slice(DATA_PREFIX.length)] = object[prop]
+    if (prop.startsWith(prefix.metadata)) {
+      recovered[prop.slice(prefix.metadata.length)] = object[prop]
+    } else if (prop.startsWith(prefix.data)) {
+      recovered.object[prop.slice(prefix.data.length)] = object[prop]
     } else {
       throw new Error(`unexpected property ${prop}`)
     }
@@ -59,7 +63,7 @@ function inflate (object) {
 function deflate (object) {
   const metadataProps = getMetadataProps(object)
   return extend(
-    prefixMetadataProps(metadataProps),
+    Prefixer.metadataProps(metadataProps),
     omit(object, metadataProps)
   )
 
@@ -69,28 +73,12 @@ function deflate (object) {
   // )
 }
 
-const getMetadataProps = object => pick(object, ['link', 'permalink', 'time', 'author'])
-const prefixProp = (prop, prefix) => prefix + prop
-const prefixMetadataProp = prop => prefixProp(prop, METADATA_PREFIX)
-const prefixMetadataProps = props => prefixProps(props, METADATA_PREFIX)
-const prefixDataProp = prop => prefixProp(prop, DATA_PREFIX)
-const prefixDataProps = props => prefixProps(props, DATA_PREFIX)
-
-function prefixProps (props, prefix) {
-  const prefixed = {}
-  for (let prop in props) {
-    prefixed[prefixProp(prop, prefix)] = props[prop]
-  }
-
-  return prefixed
-}
-
 function toDynogelsSchema ({ model, models }) {
   const schema = toJoi({ model, models })
-  schema[prefixProp('time', METADATA_PREFIX)] = Joi.string()
-  schema[prefixProp('author', METADATA_PREFIX)] = Joi.string()
-  schema[prefixProp('link', METADATA_PREFIX)] = Joi.string()
-  schema[prefixProp('permalink', METADATA_PREFIX)] = Joi.string()
+  schema[Prefixer.metadataProp('time')] = Joi.string()
+  schema[Prefixer.metadataProp('author')] = Joi.string()
+  schema[Prefixer.metadataProp('link')] = Joi.string()
+  schema[Prefixer.metadataProp('permalink')] = Joi.string()
   return {
     // metadata prop
     // hashKey: prefixProp('time', METADATA_PREFIX),
@@ -100,7 +88,7 @@ function toDynogelsSchema ({ model, models }) {
     tableName: getTableName(model),
     timestamps: true,
     createdAt: false,
-    updatedAt: prefixProp('dateUpdated'),
+    updatedAt: Prefixer.metadataProp('dateUpdated'),
     schema,
     indexes: indexes.concat(getIndexes({ model, models }))
   }
@@ -153,12 +141,15 @@ function wrapTable ({ table, model, objects }) {
 
   const get = co(function* (key) {
     const result = yield _get(key)
+    if (!result) throw new Errors.NotFound()
+
     return wrapInstance(result)
   })
 
   const update = co(function* (item, options) {
+    item = deflate(item)
     const slim = slimmer.slim({ item, model })
-    const putSlim = table.update(deflate(item), options)
+    const putSlim = table.update(slim, options)
     const putFat = slim === item ? RESOLVED : objects.putObject(item)
     // const result = yield table.update(deflate(item), options)
     const [result] = yield [putSlim, putFat]

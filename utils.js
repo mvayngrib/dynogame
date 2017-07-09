@@ -17,6 +17,8 @@ const STRING_TYPE = {
   type: 'string'
 }
 
+const STUB_PROPS = ['id', 'title']
+
 const PROTOCOL_PROPS = {
   [TYPE]: STRING_TYPE,
   [SIG]: STRING_TYPE,
@@ -28,7 +30,9 @@ const PROTOCOL_PROPS = {
   }
 }
 
+const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
+const getMetadataProps = object => pick(object, ['link', 'permalink', 'time', 'author'])
 
 module.exports = {
   co,
@@ -39,11 +43,14 @@ module.exports = {
   deepEqual,
   pick,
   omit,
+  // getNonProtocolProps,
+  isResourceStub,
+  fromResourceStub,
   isEmailProperty,
   isInlinedProperty,
   getProperties,
   getRequiredProperties,
-  getMutationProperties,
+  getOnCreateProperties,
   isRequired,
   getRef,
   isInstantiable,
@@ -53,7 +60,8 @@ module.exports = {
   toNonNull,
   mapObject,
   withProtocolProps,
-  normalizeModels
+  normalizeModels,
+  getMetadataProps
 }
 
 function isEmailProperty ({ propertyName, property }) {
@@ -109,19 +117,26 @@ function isInstantiable (model) {
   return true
 }
 
-function getMutationProperties ({ model, models }) {
-  const { properties } = model
-  return Object.keys(properties).filter(propertyName => {
-    const property = properties[propertyName]
-    const { type } = property
-    if (type !== 'object' && type !== 'array') {
-      return true
-    }
-
-    if (isInlinedProperty({ property, models })) {
-      return true
-    }
+function getOnCreateProperties ({ model, models }) {
+  return Object.keys(model.properties).filter(propertyName => {
+    return isSetOnCreate({ model, propertyName })
   })
+}
+
+function isSetOnCreate ({ model, propertyName }) {
+  const property = model.properties[propertyName]
+  return !property.backlink
+
+  // const { type } = property
+  // if (type !== 'object' && type !== 'array') {
+  //   return true
+  // }
+
+  // if (isInlinedProperty({ property, models })) {
+  //   return true
+  // }
+
+  // if (!property.backlink) return true
 }
 
 function cachify (fn, getId) {
@@ -200,3 +215,22 @@ function unique (strings) {
 function normalizeModels (models) {
   return mapObject(models, withProtocolProps)
 }
+
+function isResourceStub (props) {
+  const keys = Object.keys(props)
+  return keys.length === STUB_PROPS.length &&
+    deepEqual(keys.sort(), STUB_PROPS)
+}
+
+function fromResourceStub (props) {
+  const [type, permalink, link] = props.id.split('_')
+  return {
+    [TYPE]: type,
+    link,
+    permalink
+  }
+}
+
+// function getNonProtocolProps (props) {
+//   return omit(props, Object.keys(PROTOCOL_PROP_NAMES))
+// }

@@ -61,7 +61,7 @@ function toJoiProp ({
 
     return Joi.object({
       id: Joi.string(),
-      title: Joi.string()
+      title: Joi.string().allow('', null)
     })
   default:
     throw new Error(`unknown type: ${type}`)

@@ -3,7 +3,7 @@ const {
 } = require('graphql')
 
 const StringWrapper = { type: GraphQLString }
-const TimestampType = require('./timestamp')
+const TimestampType = require('./types/timestamp')
 const prefix = {
   metadata: '',
   data: ''
@@ -33,6 +33,12 @@ module.exports = {
       hashKey: metadataProperties.author,
       rangeKey: metadataProperties.time,
       name: 'AuthorAndDateIndex',
+      type: 'global'
+    },
+    {
+      hashKey: metadataProperties.permalink,
+      rangeKey: metadataProperties.time,
+      name: 'PermalinkAndDateIndex',
       type: 'global'
     }
   ],

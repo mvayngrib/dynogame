@@ -57,7 +57,7 @@ const TimestampType = new GraphQLScalarType({
     'as number of milliseconds from start of UNIX epoch.',
   serialize: andStringify(serializeDate),
   parseValue: andStringify(parseDate),
-  parseLiteral: andStringify(parseDateFromLiteral),
+  parseLiteral: andStringify(parseDateFromLiteral)
 })
 
 module.exports = TimestampType

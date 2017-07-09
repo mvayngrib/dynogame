@@ -15,7 +15,7 @@ const {
 
 const GraphQLJSON = require('graphql-type-json')
 const validateResource = require('@tradle/validate-resource')
-const TimestampType = require('./timestamp')
+const ResourceStubType = require('./types/resource-stub')
 // const GraphQLDate = require('graphql-date')
 const {
   GraphQLDate,
@@ -25,12 +25,14 @@ const {
 
 const {
   withProtocolProps,
+  isResourceStub,
+  fromResourceStub,
   isEmailProperty,
   isInlinedProperty,
   getInstantiableModels,
   isInstantiable,
   getRequiredProperties,
-  getMutationProperties,
+  getOnCreateProperties,
   getProperties,
   getRef,
   cachify,
@@ -76,9 +78,9 @@ function createSchema ({ tables, objects, models }) {
   function createMutationType ({ model }) {
     const required = getRequiredProperties(model)
     const { properties } = model
-    const propertyNames = getMutationProperties({ model, models })
+    const propertyNames = getOnCreateProperties({ model, models })
     const { id } = model
-    const { type, list } = getOrCreateType({ model })
+    const type = getType({ model })
     const args = shallowClone(metadataArgs)
     propertyNames.forEach(propertyName => {
       const property = properties[propertyName]
@@ -94,52 +96,72 @@ function createSchema ({ tables, objects, models }) {
 
     return {
       type,
-      // type: list,
       description: `Add a ${id}`,
       args,
-      resolve: createMutater({ model })
+      resolve: getMutater({ model })
     }
   }
 
   function createMutationProperty ({ propertyName, property, model, required }) {
+    const { type } = getFieldType({
+      propertyName,
+      property,
+      model,
+      isInput: true,
+      isRequired: required.indexOf(propertyName) !== -1
+    })
+
     return {
       name: getTypeName(propertyName),
-      type: getFieldType({
-        propertyName,
-        property,
-        model,
-        isInput: true,
-        isRequired: required.indexOf(propertyName) !== -1
-      }),
-      resolve: function () {
-        throw new Error('implement me')
-      }
+      description: property.description,
+      type,
+      // resolve: getMutater({ model })
+      // resolve: function () {
+      //   throw new Error('implement me')
+      // }
     }
   }
 
   function validateMutation ({ model, props }) {
-    return validateResource({
-      models,
-      resource: props
-    })
+    // TODO: strip metadata props, then validate
+    // return validateResource({
+    //   models,
+    //   resource: props
+    // })
   }
 
-  function createMutater ({ model }) {
+  const getMutater = cachifyByModel(function ({ model }) {
     return co(function* (root, props) {
       validateMutation({ model, props })
       const result = yield tables[model.id].update(props)
       return resultsToJson(result)
     })
+  })
+
+  const getGetter = cachifyByModel(function ({ model }) {
+    return co(function* (root, props) {
+      if (isResourceStub(props)) {
+        return getByStub({ model, stub: props })
+      }
+
+      return getByPrimaryKey({ model, props })
+    })
+  })
+
+  function getByStub ({ model, stub }) {
+    return getByPrimaryKey({
+      model,
+      props: fromResourceStub(stub)
+    })
   }
 
-  const getOrCreateGetter = cachify(function ({ model }) {
-    return co(function* getter (root, props) {
-      const key = getPrimaryKeyProps(props)
-      // TODO: add ProjectionExpression with attributes to fetch
-      const result = yield tables[model.id].get(key)
-      return result.toJSON()
-    })
-  }, ({ model }) => model.id)
+  const getByPrimaryKey = co(function* ({ model, key, props }) {
+    if (!key) key = getPrimaryKeyProps(props)
+
+    // TODO: add ProjectionExpression with attributes to fetch
+    const result = yield tables[model.id].get(key)
+    return result.toJSON()
+  })
 
   function getQueryBy (props) {
     if (hashKey in props) {
@@ -189,7 +211,21 @@ function createSchema ({ tables, objects, models }) {
     return filterResults(Items, props)
   })
 
-  const getOrCreateLister = cachify(function ({ model }) {
+  const getBacklinkResolver = cachifyByModel(function ({ model }) {
+    return function (source, stubs) {
+      return Promise.all(stubs.map(stub => getByStub({ model, stub })))
+    }
+  })
+
+  const getLinkResolver = cachifyByModel(function ({ model }) {
+    return function (source, args, context, info) {
+      const { fieldName } = info
+      const stub = source[fieldName]
+      return getByStub({ model, stub })
+    }
+  })
+
+  const getLister = cachifyByModel(function ({ model }) {
     return co(function* (root, props) {
       const primaryKey = getQueryBy(props)
       let results
@@ -211,7 +247,7 @@ function createSchema ({ tables, objects, models }) {
       // for now
       return results
     })
-  }, ({ model }) => model.id)
+  })
 
   function resultsToJson (items) {
     if (Array.isArray(items)) {
@@ -227,41 +263,54 @@ function createSchema ({ tables, objects, models }) {
     return pick(props, PRIMARY_KEY_PROPS)
   }
 
-  const getOrCreateType = cachify(function ({ model }) {
-    const { id } = model
-    const type = createType({ model })
-    const list = new GraphQLList(type)
-    return { type, list }
-  }, ({ model }) => model.id)
-
   function sanitizeEnumValueName (id) {
     return id.replace(/[^_a-zA-Z0-9]/g, '_')
   }
 
   function createEnumType ({ model }) {
-    const values = {}
-    for (const value of model.enum) {
-      const { id, title } = value
-      values[sanitizeEnumValueName(id)] = {
-        value: id,
-        description: title
-      }
-    }
-
-    return new GraphQLEnumType({
+    return new GraphQLObjectType({
       name: getTypeName(model),
       description: model.description,
-      values
+      fields: {
+        id: {
+          type: new GraphQLNonNull(GraphQLString)
+        },
+        title: {
+          type: GraphQLString
+        }
+      }
     })
+
+    // TODO: uncomment after enums are refactored
+    // to be more like enums and less like resources
+
+    // const values = {}
+    // for (const value of model.enum) {
+    //   const { id, title } = value
+    //   values[sanitizeEnumValueName(id)] = {
+    //     value: id,
+    //     description: title
+    //   }
+    // }
+
+    // return new GraphQLEnumType({
+    //   name: getTypeName(model),
+    //   description: model.description,
+    //   values
+    // })
   }
 
-  function createType ({ model }) {
+  function isEnumModel (model) {
     if (model.subClassOf === 'tradle.Enum') {
-      if (model.enum) {
-        return createEnumType({ model })
-      }
+      if (model.enum) return true
 
       debug(`bad enum: ${model.id}`)
+    }
+  }
+
+  const getType = cachifyByModel(function ({ model }) {
+    if (isEnumModel(model)) {
+      return createEnumType({ model })
     }
 
     const required = getRequiredProperties(model)
@@ -269,6 +318,7 @@ function createSchema ({ tables, objects, models }) {
     const propertyNames = getProperties(model)
     return new GraphQLObjectType({
       name: getTypeName(model),
+      description: model.description,
       fields: function () {
         const fields = shallowClone(metadata.types)
         propertyNames.forEach(propertyName => {
@@ -295,7 +345,7 @@ function createSchema ({ tables, objects, models }) {
         return fields
       }
     })
-  }
+  })
 
   function createField ({
     propertyName,
@@ -304,7 +354,7 @@ function createSchema ({ tables, objects, models }) {
     required
   }) {
     const { description } = property
-    const type = getFieldType({
+    const { type, resolve } = getFieldType({
       propertyName,
       property,
       model,
@@ -312,6 +362,7 @@ function createSchema ({ tables, objects, models }) {
     })
 
     const field = { type }
+    if (resolve) field.resolve = resolve
     if (description) field.description = description
 
     return field
@@ -322,16 +373,13 @@ function createSchema ({ tables, objects, models }) {
     return type !== 'object' && type !== 'array' && type !== 'enum'
   }
 
-  function getObjectType ({ input }) {
-    return GraphQLJSON
-    // return input ? GraphQLInputObjectType : GraphQLJSON
-  }
-
   function getFieldType ({ propertyName, property, model, isRequired, isInput }) {
-    const PropType = _getFieldType({ propertyName, property, model, isInput })
-    return isRequired || !isNullableProperty(property)
-      ? new GraphQLNonNull(PropType)
-      : PropType
+    let { type, resolve } = _getFieldType(arguments[0])
+    if (isRequired || !isNullableProperty(property)) {
+      type = new GraphQLNonNull(type)
+    }
+
+    return { type, resolve }
   }
 
   function _getFieldType ({ propertyName, property, model, isInput }) {
@@ -339,36 +387,53 @@ function createSchema ({ tables, objects, models }) {
     const ref = getRef(property)
     switch (type) {
       case 'string':
-        return GraphQLString
+        return { type: GraphQLString }
       case 'boolean':
-        return GraphQLBoolean
+        return { type: GraphQLBoolean }
       case 'number':
-        return GraphQLFloat
+        return { type: GraphQLFloat }
       case 'date':
-        return GraphQLDate
+        return { type: GraphQLDate }
       case 'object':
       case 'array':
         if (isInlinedProperty({ property, model, models })) {
           debug(`TODO: schema for inlined property ${model.id}.${propertyName}`)
-          return getObjectType({ input: isInput })
+          return { type: GraphQLJSON }
         }
 
         const isArray = type === 'array'
         const range = models[ref]
         if (!range || !isInstantiable(range)) {
           debug(`not sure how to handle property with range ${ref}`)
-          return getObjectType({ input: isInput })
+          return { type: GraphQLJSON }
           // return isArray ? new GraphQLList(GraphQLObjectType) : GraphQLObjectType
         }
 
-        const RangeType = getOrCreateType({ model: range })
-        return isArray ? RangeType.list : RangeType.type
+        if (isInput) {
+          return { type: ResourceStubType }
+        }
+
+        const RangeType = getType({ model: range })
+        let fieldType, resolve
+        if (isArray) {
+          fieldType = new GraphQLList(RangeType)
+          resolve = getBacklinkResolver({ model: range })
+        } else {
+          fieldType = RangeType
+          resolve = getLinkResolver({ model: range })
+        }
+
+        // const resolve = isArray ? getLister({ model: range })
+        return {
+          type: fieldType,
+          resolve
+        }
       case 'enum':
         debug(`unexpected property type: ${type}`)
-        return getObjectType({ input: isInput })
+        return { type: GraphQLJSON }
       default:
         // debug(`unexpected property type: ${type}`)
-        // return getObjectType({ input: isInput })
+        // return GraphQLJSON
         throw new Error(`unexpected property type: ${type}`)
     }
   }
@@ -383,20 +448,20 @@ function createSchema ({ tables, objects, models }) {
       const fields = {}
       getInstantiableModels(models).forEach(id => {
         const model = models[id]
-        const { type, list } = getOrCreateType({ model })
+        const type = getType({ model })
         fields[getListerFieldName(id)] = {
-          type: list,
+          type: new GraphQLList(type),
           args: extend({
             // TODO:
             // extend with props from model
           }, metadata.types), // nullable metadata
-          resolve: getOrCreateLister({ model })
+          resolve: getLister({ model })
         }
 
         fields[getGetterFieldName(id)] = {
           type,
           args: primaryKeyArgs,
-          resolve: getOrCreateGetter({ model })
+          resolve: getGetter({ model })
         }
       })
 
@@ -418,9 +483,23 @@ function createSchema ({ tables, objects, models }) {
     }
   })
 
-  return new GraphQLSchema({
-    query: QueryType,
-    mutation: MutationType,
-    types: getValues(TYPES)
+  const schemas = {}
+  Object.keys(models).forEach(id => {
+    schemas.__defineGetter__(id, () => {
+      return getType({ model: models[id] })
+    })
   })
+
+  return {
+    schema: new GraphQLSchema({
+      query: QueryType,
+      mutation: MutationType,
+      types: getValues(TYPES)
+    }),
+    schemas
+  }
+}
+
+function cachifyByModel (fn) {
+  return cachify(fn, ({ model }) => model.id)
 }

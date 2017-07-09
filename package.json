@@ -12,6 +12,7 @@
     "co": "^4.6.0",
     "deep-equal": "^1.0.1",
     "dynogels": "^8.0.1",
+    "error-ex": "^1.3.1",
     "graphql": "^0.10.3",
     "graphql-iso-date": "^3.2.0",
     "graphql-type-json": "^0.1.4",
@@ -24,7 +25,8 @@
   "devDependencies": {
     "apollo-client": "^1.7.0",
     "express": "^4.15.3",
-    "express-graphql": "^0.6.6"
+    "express-graphql": "^0.6.6",
+    "graphql-tag": "^2.4.2"
   },
   "scripts": {
     "lint": "eslint --quiet --ignore-path .gitignore ."
