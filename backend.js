@@ -1,15 +1,16 @@
-const co = require('co').wrap
 const Joi = require('joi')
-const clone = require('xtend')
-const extend = require('xtend/mutable')
-const pick = require('object.pick')
-const omit = require('object.omit')
-const promisify = require('pify')
 const dynogels = require('dynogels')
+const {
+  co,
+  extend,
+  pick,
+  omit,
+  promisify,
+} = require('./utils')
 const createTables = promisify(dynogels.createTables)
-const { isEmailProperty, isInlinedProperty } = require('./utils')
 const constants = require('./constants')
 const slimmer = require('./slim')
+const { toJoi } = require('./joi')
 const { hashKey, rangeKey, indexes } = constants
 const METADATA_PREFIX = constants.prefix.metadata
 const DATA_PREFIX = constants.prefix.data
@@ -34,25 +35,6 @@ const ensureTables = co(function* (tables) {
     }
   }
 })
-
-module.exports = {
-  toDynogelsSchema,
-  deflate,
-  inflate,
-  getTableName,
-  // getKey,
-  getTable,
-  getTables,
-  ensureTables
-  // list
-}
-
-// function getKey (resource) {
-//   return {
-//     prefixProp('time', METADATA_PREFIX),
-//     prefixProp('author', METADATA_PREFIX)
-//   }
-// }
 
 function inflate (object) {
   // const metadataProps = Object.keys(object).filter(prop => prop.startsWith(METADATA_PREFIX))
@@ -175,7 +157,7 @@ function wrapTable ({ table, model, objects }) {
   })
 
   const update = co(function* (item, options) {
-    const slim = slimmer.slim(item)
+    const slim = slimmer.slim({ item, model })
     const putSlim = table.update(deflate(item), options)
     const putFat = slim === item ? RESOLVED : objects.putObject(item)
     // const result = yield table.update(deflate(item), options)
@@ -188,12 +170,19 @@ function wrapTable ({ table, model, objects }) {
     return wrapInstance(result)
   })
 
-  return {
+  const crud = wrapFunctionsWithEnsureTable({
+    table,
+    model,
+    object: {
+      create,
+      get,
+      update,
+      destroy
+    }
+  })
+
+  return extend(crud, {
     createTable: () => table.createTable(),
-    create,
-    get,
-    update,
-    destroy,
     query: (...args) => wrapOperation({
       table,
       model,
@@ -203,22 +192,43 @@ function wrapTable ({ table, model, objects }) {
       table,
       model,
       op: table.scan(...args)
-    }),
-  }
+    })
+  })
 }
 
 // TODO: wrap, instead of overwrite
 function wrapOperation ({ table, model, op }) {
-  const exec = promisify(op.exec.bind(op))
-  op.exec = co(function* () {
+  op.exec = wrapWithEnsureTable({
+    fn: promisify(op.exec.bind(op)),
+    table,
+    model
+  })
+
+  return op
+}
+
+function wrapFunctionsWithEnsureTable ({ object, model, table }) {
+  const ensured = {}
+  Object.keys(object).forEach(key => {
+    const val = object[key]
+    if (typeof val === 'function') {
+      ensured[key] = wrapWithEnsureTable({ fn: val, model, table })
+    } else {
+      ensured[key] = val
+    }
+  })
+
+  return ensured
+}
+
+function wrapWithEnsureTable ({ fn, model, table }) {
+  return co(function* (...args) {
     yield ensureTables({
       [model.id]: table
     })
 
-    return yield exec()
+    return yield fn.apply(this, args)
   })
-
-  return op
 }
 
 function getTables ({ models, objects }) {
@@ -241,98 +251,19 @@ function getTables ({ models, objects }) {
   return tables
 }
 
-function toJoi ({ model, models }) {
-  const { properties, required } = model
-  const joiProps = {}
-  for (let propertyName in properties) {
-    let property = properties[propertyName]
-    joiProps[propertyName] = toJoiProp({ propertyName, property, model, models })
-  }
-
-  for (let name of required) {
-    joiProps[name] = joiProps[name].required()
-  }
-
-  return joiProps
-}
-
-function toJoiProp ({
-  propertyName,
-  property,
-  model,
-  models
-}) {
-  const { type } = property
-  switch (type) {
-  case 'string':
-    return toJoiStringProperty({ propertyName, property })
-  case 'number':
-    return toJoiNumberProperty({ propertyName, property })
-  case 'date':
-    return Joi.date()
-  case 'boolean':
-    return Joi.boolean()
-  case 'array':
-    return Joi.array().items(toJoiProp({
-      propertyName,
-      property: clone(property, { type: 'object' }),
-      model,
-      models
-    }))
-
-  case 'object':
-    const isInlined = isInlinedProperty({
-      property,
-      model,
-      models
-    })
-
-    if (isInlined) {
-      return Joi.object()
-    }
-
-    return Joi.object({
-      id: Joi.string(),
-      title: Joi.string()
-    })
-  default:
-    throw new Error(`unknown type: ${type}`)
-  }
-}
-
-function toJoiNumberProperty ({ propertyName, property }) {
-  let joiProp = Joi.number()
-  if (property.maxLength) {
-    joiProp = joiProp.max(Math.pow(10, property.maxLength) - 1)
-  }
-
-  if (property.minLength) {
-    joiProp = joiProp.min(Math.pow(10, property.minLength) - 1)
-  }
-
-  return joiProp
-}
-
-function toJoiStringProperty ({ propertyName, property }) {
-  let joiProp = Joi.string()
-  if (isEmailProperty({ propertyName, property })) {
-    joiProp = joiProp.email()
-  } else if (property.pattern) {
-    joiProp = joiProp.regex(new RegExp(property.pattern))
-  }
-
-  if (property.maxLength) {
-    joiProp = joiProp.max(Math.pow(10, property.maxLength) - 1)
-  }
-
-  if (property.minLength) {
-    joiProp = joiProp.min(Math.pow(10, property.minLength) - 1)
-  }
-
-  return joiProp
-}
-
 function getTableName (model) {
   const id = model.id || model
   return id.replace(/[.]/g, '_')
+}
+
+module.exports = {
+  toDynogelsSchema,
+  deflate,
+  inflate,
+  getTableName,
+  // getKey,
+  getTable,
+  getTables,
+  ensureTables
+  // list
 }

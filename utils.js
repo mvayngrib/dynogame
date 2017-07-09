@@ -5,7 +5,30 @@ const shallowClone = require('xtend')
 const extend = require('xtend/mutable')
 const deepEqual = require('deep-equal')
 const pick = require('object.pick')
+const omit = require('object.omit')
 const { GraphQLNonNull } = require('graphql')
+const TYPE = '_t'
+const SIG = '_s'
+const SEQ = '_n'
+const PERMALINK = '_r'
+const PREVLINK = '_p'
+const PREV_TO_SENDER = '_q'
+const STRING_TYPE = {
+  type: 'string'
+}
+
+const PROTOCOL_PROPS = {
+  [TYPE]: STRING_TYPE,
+  [SIG]: STRING_TYPE,
+  [SEQ]: STRING_TYPE,
+  [SIG]: STRING_TYPE,
+  [PREV_TO_SENDER]: STRING_TYPE,
+  [SEQ]: {
+    type: 'number'
+  }
+}
+
+const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
 
 module.exports = {
   co,
@@ -15,6 +38,7 @@ module.exports = {
   extend,
   deepEqual,
   pick,
+  omit,
   isEmailProperty,
   isInlinedProperty,
   getProperties,
@@ -27,7 +51,9 @@ module.exports = {
   cachify,
   getValues,
   toNonNull,
-  mapObject
+  mapObject,
+  withProtocolProps,
+  normalizeModels
 }
 
 function isEmailProperty ({ propertyName, property }) {
@@ -52,15 +78,11 @@ function isInlinedProperty ({
 }
 
 function isRequired ({ model, propertyName }) {
-  if (!model.required) {
-    return true
-  }
-
-  return model.required.includes(propertyName)
+  return getRequiredProperties(model).includes(propertyName)
 }
 
 function getRequiredProperties (model) {
-  return model.required || [] // Object.keys(model.properties)
+  return model.required
 }
 
 function getRef (property) {
@@ -133,4 +155,48 @@ function mapObject (obj, mapper) {
   }
 
   return mapped
+}
+
+function withProtocolProps (model) {
+  let required = model.required || []
+  while (true) {
+    let expanded = expandGroupProps(model, required)
+    if (expanded.length === required.length) {
+      break
+    }
+
+    required = expanded
+  }
+
+  return shallowClone(model, shallowClone({
+    properties: shallowClone(model.properties, PROTOCOL_PROPS),
+    required: unique(required.concat(REQUIRED_PROTOCOL_PROPS))
+  }))
+}
+
+function expandGroupProps (model, arr) {
+  return arr.reduce((props, name) => {
+    const { group } = model.properties[name]
+    if (group) {
+      // nested group props should be caught in @tradle/validate-model
+      return props.concat(group)
+    }
+
+    return props.concat(name)
+  }, [])
+}
+
+function unique (strings) {
+  const obj = {}
+  for (let str of strings) {
+    if (!(str in obj)) {
+      obj[str] = true
+    }
+  }
+
+  return Object.keys(obj)
+}
+
+function normalizeModels (models) {
+  return mapObject(models, withProtocolProps)
 }

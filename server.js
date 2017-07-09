@@ -13,8 +13,11 @@ dynogels.AWS.config.update({
 })
 
 const modelsArray = require('@tradle/models').models.concat(require('@tradle/custom-models'))
-const models = {}
-modelsArray.forEach(m => models[m.id] = m)
+const { normalizeModels } = require('./utils')
+const models = normalizeModels(modelsArray.reduce((map, model) => {
+  map[model.id] = model
+  return map
+}, {}))
 
 const { createSchema } = require('./schema-mapper-graphql')
 const { getTables, ensureTables } = require('./backend')
@@ -41,6 +44,8 @@ co(function* () {
   const table = tables['tradle.BasicContactInfo']
   yield ensureTables(pick(tables, 'tradle.BasicContactInfo'))
   yield table.create({
+    _t: 'tradle.BasicContactInfo',
+    _s: 'somesig',
     [`${METADATA_PREFIX}author`]: 'bill',
     [`${METADATA_PREFIX}time`]: time,
     [`${METADATA_PREFIX}link`]: 'a',

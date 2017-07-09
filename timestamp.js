@@ -2,11 +2,19 @@ const { Kind } = require('graphql/language')
 const { GraphQLScalarType } = require('graphql')
 
 function serializeDate (value) {
+  if (!isNaN(value)) {
+    return value
+  }
+
   if (value instanceof Date) {
     return value.getTime()
-  } else if (typeof value === 'number') {
+  }
+
+  if (typeof value === 'number') {
     return Math.trunc(value)
-  } else if (typeof value === 'string') {
+  }
+
+  if (typeof value === 'string') {
     return Date.parse(value)
   }
 

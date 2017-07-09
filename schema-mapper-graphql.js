@@ -23,6 +23,7 @@ const {
 } = require('graphql-iso-date')
 
 const {
+  withProtocolProps,
   isEmailProperty,
   isInlinedProperty,
   getInstantiableModels,
@@ -54,10 +55,11 @@ const prefixMetadataProp = prop => METADATA_PREFIX + prop
 //   return prefixed
 // }, {})
 
-const getGetterFieldName = type => `get_${getTypeName(type)}`
-const getListerFieldName = type => `list_${getTypeName(type)}`
-const getCreaterFieldName = type => `create_${getTypeName(type)}`
-const getEditerFieldName = type => `edit_${getTypeName(type)}`
+const getGetterFieldName = type => `r_${getTypeName(type)}`
+const getListerFieldName = type => `rl_${getTypeName(type)}`
+const getCreaterFieldName = type => `c_${getTypeName(type)}`
+const getUpdaterFieldName = type => `u_${getTypeName(type)}`
+const getDeleterFieldName = type => `d_${getTypeName(type)}`
 const PRIMARY_KEY_PROPS = constants.primaryKeyProperties
 
 module.exports = {
@@ -76,7 +78,7 @@ function createSchema ({ tables, objects, models }) {
     const propertyNames = getMutationProperties({ model, models })
     const { id } = model
     const { type, list } = getOrCreateType({ model })
-    const args = {}
+    const args = shallowClone(metadataArgs)
     propertyNames.forEach(propertyName => {
       const property = properties[propertyName]
       args[propertyName] = createMutationProperty({
@@ -90,7 +92,8 @@ function createSchema ({ tables, objects, models }) {
     })
 
     return {
-      type: list,
+      type,
+      // type: list,
       description: `Add a ${id}`,
       args,
       resolve: createMutater({ model })
@@ -100,17 +103,27 @@ function createSchema ({ tables, objects, models }) {
   function createMutationProperty ({ propertyName, property, model, required }) {
     return {
       name: getTypeName(propertyName),
-      type: getFieldType({ propertyName, property, model, isInput: true }),
+      type: getFieldType({
+        propertyName,
+        property,
+        model,
+        isInput: true,
+        isRequired: required.indexOf(propertyName) !== -1
+      }),
       resolve: function () {
         throw new Error('implement me')
       }
     }
   }
 
+  function validateMutation ({ model, props }) {}
+
   function createMutater ({ model }) {
-    return function (root, props) {
-      return tables[model.id].update(props)
-    }
+    return co(function* (root, props) {
+      validateMutation({ model, props })
+      const result = yield tables[model.id].update(props)
+      return resultsToJson(result)
+    })
   }
 
   const getOrCreateGetter = cachify(function ({ model }) {
@@ -196,7 +209,9 @@ function createSchema ({ tables, objects, models }) {
 
   function resultsToJson (items) {
     if (Array.isArray(items)) {
-      return items.map(item => item.toJSON ? item.toJSON() : item)
+      return items.map(item => {
+        return item.toJSON ? item.toJSON() : item
+      })
     }
 
     return items.toJSON ? items.toJSON() : items
@@ -309,8 +324,8 @@ function createSchema ({ tables, objects, models }) {
   function getFieldType ({ propertyName, property, model, isRequired, isInput }) {
     const PropType = _getFieldType({ propertyName, property, model, isInput })
     return isRequired || !isNullableProperty(property)
-      ? PropType
-      : new GraphQLNonNull(PropType)
+      ? new GraphQLNonNull(PropType)
+      : PropType
   }
 
   function _getFieldType ({ propertyName, property, model, isInput }) {
