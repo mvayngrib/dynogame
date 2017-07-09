@@ -14,6 +14,7 @@ const {
 } = require('graphql')
 
 const GraphQLJSON = require('graphql-type-json')
+const validateResource = require('@tradle/validate-resource')
 const TimestampType = require('./timestamp')
 // const GraphQLDate = require('graphql-date')
 const {
@@ -116,7 +117,12 @@ function createSchema ({ tables, objects, models }) {
     }
   }
 
-  function validateMutation ({ model, props }) {}
+  function validateMutation ({ model, props }) {
+    return validateResource({
+      models,
+      resource: props
+    })
+  }
 
   function createMutater ({ model }) {
     return co(function* (root, props) {

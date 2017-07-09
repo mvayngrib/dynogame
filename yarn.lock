@@ -18,6 +18,21 @@
     typeforce "^1.10.6"
     write-file-atomic "^1.1.4"
 
+"@tradle/validate-model@tradle/validate-model":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/7409da4a25cd2d39c1a05032d933db2b904bccbe"
+  dependencies:
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
+    typeforce "^1.10.6"
+    xtend "^4.0.1"
+
+"@tradle/validate-resource@tradle/validate-resource":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/842c37f47f25a5a7ab4ca6a4d2927957e89e9a13"
+  dependencies:
+    traverse "^0.6.6"
+
 "@types/async@^2.0.31":
   version "2.0.40"
   resolved "https://registry.yarnpkg.com/@types/async/-/async-2.0.40.tgz#ac02de68e66c004a61b7cb16df8b1db3a254cca9"
@@ -530,6 +545,10 @@ topo@2.x.x:
   resolved "https://registry.yarnpkg.com/topo/-/topo-2.0.2.tgz#cd5615752539057c0dc0491a621c3bc6fbe1d182"
   dependencies:
     hoek "4.x.x"
+
+traverse@^0.6.6:
+  version "0.6.6"
+  resolved "https://registry.yarnpkg.com/traverse/-/traverse-0.6.6.tgz#cbdf560fd7b9af632502fed40f918c157ea97137"
 
 type-is@~1.6.15:
   version "1.6.15"

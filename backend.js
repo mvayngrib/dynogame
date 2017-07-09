@@ -142,10 +142,10 @@ function wrapTable ({ table, model, objects }) {
     include: ['createTable', 'create', 'get', 'update', 'destroy']
   })
 
-  const create = co(function* (item, options={}) {
-    const result = yield table.create(deflate(item), options)
-    return wrapInstance(result)
-  })
+  // const create = co(function* (item, options={}) {
+  //   const result = yield table.create(deflate(item), options)
+  //   return wrapInstance(result)
+  // })
 
   const _get = rangeKey
     ? key => table.get(key[hashKey], key[rangeKey])
@@ -174,7 +174,7 @@ function wrapTable ({ table, model, objects }) {
     table,
     model,
     object: {
-      create,
+      create: update,
       get,
       update,
       destroy
