@@ -3,7 +3,7 @@ module.exports = {
   isInlinedProperty,
   getProperties,
   getRequiredProperties,
-  getProperties,
+  isRequired,
   getRef,
   isInstantiable,
   getInstantiableModels
@@ -28,6 +28,14 @@ function isInlinedProperty ({
   }
 
   return property.items && !property.items.ref
+}
+
+function isRequired ({ model, propertyName }) {
+  if (!model.required) {
+    return true
+  }
+
+  return model.required.includes(propertyName)
 }
 
 function getRequiredProperties (model) {

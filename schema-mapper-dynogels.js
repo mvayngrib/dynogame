@@ -6,6 +6,7 @@ const pick = require('object.pick')
 const promisify = require('pify')
 const dynogels = require('dynogels')
 const { isEmailProperty, isInlinedProperty } = require('./utils')
+const RESOLVED = Promise.resolve()
 // const METADATA_PREFIX = 'm'
 // const DATA_PREFIX = 'd'
 const METADATA_PREFIX = '_'
@@ -18,7 +19,8 @@ module.exports = {
   fromDynogelsObject,
   getTableName,
   // getKey,
-  defineTable
+  defineTable,
+  list
 }
 
 // function getKey (resource) {
@@ -89,10 +91,10 @@ function toDynogelsSchema ({ model, models }) {
   }
 }
 
-function defineTable ({ model, models }) {
+function defineTable ({ model, models, objects }) {
   const schema = toDynogelsSchema({ model, models })
   const table = dynogels.define(model.id, schema)
-  return wrapTable(table)
+  return wrapTable({ table, objects })
 }
 
 function wrapInstance (instance) {
@@ -101,7 +103,7 @@ function wrapInstance (instance) {
     get: prop => prop ? instance.get(prefixDataProp(prop)) : instance.get(),
     set: prop => props => instance.set(prefixDataProps(props)),
     save: promisify(instance.save.bind(instance)),
-    update: promisify(instance.save.bind(instance)),
+    update: promisify(instance.update.bind(instance)),
     destroy: promisify(instance.destroy.bind(instance)),
     toPlainObject: toJSON,
     toJSON
@@ -112,7 +114,7 @@ function wrapInstance (instance) {
   }
 }
 
-function wrapTable (table) {
+function wrapTable ({ table, objects }) {
   table = promisify(table)
   const create = co(function* (item) {
     const result = yield table.create(toDynogelsObject(item))
@@ -125,7 +127,11 @@ function wrapTable (table) {
   })
 
   const update = co(function* (item, options) {
-    const result = yield table.update(toDynogelsObject(item), options)
+    const slim = getSlim(item)
+    const putSlim = table.update(toDynogelsObject(item), options)
+    const putFat = slim === item ? RESOLVED : objects.putObject(item)
+    // const result = yield table.update(toDynogelsObject(item), options)
+    const [result] = yield [putSlim, putFat]
     return wrapInstance(result)
   })
 
@@ -138,8 +144,15 @@ function wrapTable (table) {
     create,
     get,
     update,
-    destroy
+    destroy,
+    query: (...args) => wrapOperation(table.query(...args)),
+    scan: (...args) => wrapOperation(table.scan(...args)),
   }
+}
+
+function wrapOperation (op) {
+  op.exec = promisify(op.exec.bind(op))
+  return op
 }
 
 function toJoi ({ model, models }) {

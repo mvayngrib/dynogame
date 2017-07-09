@@ -1,4 +1,5 @@
-const co = require('co')
+const co = require('co').wrap
+const debug = require('debug')('dynogame-test')
 const extend = require('xtend/mutable')
 const promisify = require('pify')
 const dynogels = require('dynogels')
@@ -38,7 +39,15 @@ const tables = {}
 for (const model of formModels) {
   const { id } = model
   // console.log(models['tradle.Country'])
-  tables[id] = defineTable({ model, models })
+  tables[id] = defineTable({
+    model,
+    models,
+    objects: {
+      putObject: co(function* (object) {
+        debug('pretending to put object to s3', JSON.stringify(object))
+      })
+    }
+  })
 }
 
 // Object.keys(tables).forEach(id => {
@@ -84,4 +93,4 @@ co(function* () {
   // })
 
   // console.log(result.attrs)
-}).catch(console.error)
+})().catch(console.error)

@@ -1,13 +1,13 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:graphql-schema')
 const promisify = require('pify')
+const deepEqual = require('deep-equal')
 const {
   graphql,
   GraphQLSchema,
   GraphQLNonNull,
   GraphQLBoolean,
   GraphQLFloat,
-  // GraphQLScalarType,
   GraphQLObjectType,
   GraphQLEnumType,
   GraphQLString,
@@ -32,12 +32,12 @@ const METADATA_PREFIX = '_'
 const prefixMetadataProp = prop => METADATA_PREFIX + prop
 const getGetterFieldName = type => `get_${getTypeName(type)}`
 const getListerFieldName = type => `list_${getTypeName(type)}`
-const AUTHOR_TYPE = {
-  type: new GraphQLNonNull(GraphQLString)
-}
-
 const AUTHOR_PROP = prefixMetadataProp('author')
 const TIME_PROP = prefixMetadataProp('time')
+const AUTHOR_TYPE = { type: GraphQLString }
+const AUTHOR_TYPE_REQUIRED = { type: new GraphQLNonNull(AUTHOR_TYPE.type) }
+const TIME_TYPE = { type: GraphQLDate }
+const TIME_TYPE_REQUIRED = { type: new GraphQLNonNull(TIME_TYPE.type) }
 
 module.exports = {
   createSchema
@@ -62,22 +62,24 @@ function createSchema ({ tables, objects, models }) {
       getInstantiableModels(models).forEach(id => {
         const model = models[id]
         const { type, list } = getOrCreate({ model })
-        fields[getGetterFieldName(id)] = {
-          type,
-          args: {
-            [AUTHOR_PROP]: AUTHOR_TYPE,
-            [TIME_PROP]: {
-              type: GraphQLDate
-            }
-          }
-        }
-
         fields[getListerFieldName(id)] = {
           type: list,
           args: {
-            [AUTHOR_PROP]: AUTHOR_TYPE
+            [AUTHOR_PROP]: AUTHOR_TYPE,
+            [TIME_PROP]: TIME_TYPE
+            // TODO:
+            // extend with props from model
           },
           resolve: createLister({ model })
+        }
+
+        fields[getGetterFieldName(id)] = {
+          type,
+          args: {
+            [AUTHOR_PROP]: AUTHOR_TYPE_REQUIRED,
+            [TIME_PROP]: TIME_TYPE_REQUIRED
+          },
+          resolve: createGetter({ model })
         }
       })
 
@@ -87,11 +89,16 @@ function createSchema ({ tables, objects, models }) {
 
   const MutationType = new GraphQLObjectType({
     name: 'Mutation',
-    fields: Object.keys(models).reduce((fields, id) => {
-      const model = models[id]
-      fields[id] = createMutationType({ model })
+    fields: function () {
+      const fields = {}
+      Object.keys(models).forEach(id => {
+        const model = models[id]
+        fields[getTypeName(id)] = createMutationType({ model })
+        return fields
+      })
+
       return fields
-    }, {})
+    }
   })
 
   function createMutationType ({ model }) {
@@ -100,20 +107,23 @@ function createSchema ({ tables, objects, models }) {
     const propertyNames = getProperties(model)
     const { id } = model
     const { type, list } = getOrCreate({ model })
+    const args = {}
+    propertyNames.forEach(propertyName => {
+      const property = properties[propertyName]
+      args[propertyName] = createMutationProperty({
+        propertyName,
+        property,
+        model,
+        required
+      })
+
+      return args
+    })
+
     return {
       type: list,
       description: `Add a ${id}`,
-      args: propertyNames.reduce((propMutations, propertyName) => {
-        const property = properties[propertyName]
-        propMutations[propertyName] = createMutationProperty({
-          propertyName,
-          property,
-          model,
-          required
-        })
-
-        return propMutations
-      }, {}),
+      args,
       resolve: createMutater({ model })
     }
   }
@@ -121,7 +131,7 @@ function createSchema ({ tables, objects, models }) {
   function createMutationProperty ({ propertyName, property, model, required }) {
     return {
       name: getTypeName(propertyName),
-      type: getPropertyType({ propertyName, property, model }),
+      type: getFieldType({ propertyName, property, model }),
       resolve: function () {
         throw new Error('implement me')
       }
@@ -129,23 +139,40 @@ function createSchema ({ tables, objects, models }) {
   }
 
   function createMutater ({ model }) {
-    return (root, props) => {
+    return function (root, props) {
       debugger
       return tables[model.id].update(props)
     }
   }
 
   function createGetter ({ model }) {
-    return co(function* ({ author, time }) {
+    return function getter (root, props) {
+      return tables[model.id].get(getPrimaryKey(props))
+    }
+  }
 
-    })
+  function listByPrimaryKeys (model, { author }) {
+    return tables[id].query(author).exec()
+  }
+
+  function search (model, props) {
+    debug('scanning based on arbitrary attributes is not yet implemented')
+    // maybe check if query is possible, then filter the results
+    // otherwise scan
+    throw new Error('implement scanning')
   }
 
   function createLister ({ model }) {
     const { id } = model
-    return co(function* ({ author }) {
-      const query = tables[id].query(author)
-      const results = yield promisify(query.exec.bind(query))()
+    return co(function* (root, props) {
+      const primaryKey = getPrimaryKey(props)
+      let results
+      if (deepEqual(primaryKey, props)) {
+        results = yield listByPrimaryKeys(model, props)
+      } else {
+        results = yield search(model, props)
+      }
+
       if (!results.length) return results
 
       const required = getRequiredProperties(model)
@@ -158,6 +185,13 @@ function createSchema ({ tables, objects, models }) {
       // for now
       return results
     })
+  }
+
+  function getPrimaryKey (props) {
+    return {
+      time: props[TIME_PROP],
+      author: props[AUTHOR_PROP]
+    }
   }
 
   function getOrCreate ({ model }) {
@@ -206,40 +240,58 @@ function createSchema ({ tables, objects, models }) {
     const required = getRequiredProperties(model)
     const { properties } = model
     const propertyNames = getProperties(model)
-    const fields = {}
-    propertyNames.forEach(propertyName => {
-      fields.__defineGetter__(propertyName, () => createProperty({
-        propertyName,
-        property: properties[propertyName],
-        model,
-        required
-      }))
-    })
-
     return new GraphQLObjectType({
       name: getTypeName(model),
-      fields
+      fields: function () {
+        const fields = {
+          [AUTHOR_PROP]: AUTHOR_TYPE,
+          [TIME_PROP]: TIME_TYPE,
+        }
+
+        propertyNames.forEach(propertyName => {
+          let field
+          const property = properties[propertyName]
+          Object.defineProperty(fields, propertyName, {
+            enumerable: true,
+            // lazy, because of circular references
+            get: () => {
+              if (!field) {
+                field = createField({
+                  propertyName,
+                  property,
+                  model,
+                  required
+                })
+              }
+
+              return field
+            }
+          })
+        })
+
+        return fields
+      }
     })
   }
 
-  function createProperty ({
+  function createField ({
     propertyName,
     property,
     model,
     required
   }) {
     const { description } = property
-    const type = getPropertyType({
+    const type = getFieldType({
       propertyName,
       property,
       model,
       isRequired: required.indexOf(propertyName) !== -1
     })
 
-    return {
-      type,
-      description
-    }
+    const field = { type }
+    if (description) field.description = description
+
+    return field
   }
 
   function isNullableProperty (property) {
@@ -247,14 +299,14 @@ function createSchema ({ tables, objects, models }) {
     return type !== 'object' && type !== 'array' && type !== 'enum'
   }
 
-  function getPropertyType ({ propertyName, property, model, isRequired }) {
-    const PropType = _getPropertyType({ propertyName, property, model })
+  function getFieldType ({ propertyName, property, model, isRequired }) {
+    const PropType = _getFieldType({ propertyName, property, model })
     return isRequired || !isNullableProperty(property)
       ? PropType
       : new GraphQLNonNull(PropType)
   }
 
-  function _getPropertyType ({ propertyName, property, model }) {
+  function _getFieldType ({ propertyName, property, model }) {
     const { type } = property
     const ref = getRef(property)
     switch (type) {
@@ -283,34 +335,6 @@ function createSchema ({ tables, objects, models }) {
 
         const RangeType = getOrCreate({ model: range })
         return isArray ? RangeType.list : RangeType.type
-
-        // if (models[ref].subClassOf === 'tradle.Enum') {
-        //   return {
-        //     type: getOrCreate({ model: models[ref] })
-        //     // type: GraphQLEnumType
-        //   }
-        // }
-
-        // return {
-        //   type: GraphQLObjectType,
-        //   resolve: (root, { link }) => {
-        //     return objects.getObjectByLink(link)
-        //   }
-        // }
-      // case 'array':
-      //   if (isInlinedProperty({ property, model, models })) {
-      //     debug(`TODO: schema for inlined property ${model.id}.${propertyName}`)
-      //     // debug(`${propertyName}, ${JSON.stringify(property, null, 2)}`)
-      //     // throw new Error('implement me!')
-      //     return GraphQLJSON
-      //   }
-
-      //   return getOrCreate({ model: models[ref] }).list
-
-        // return {
-        //   type: GraphQLObjectType,
-        //   resolve: (root, { })
-        // }
       default:
         debug(`unexpected property type: ${type}`)
         return GraphQLJSON

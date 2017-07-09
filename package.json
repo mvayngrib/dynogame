@@ -7,6 +7,7 @@
     "@tradle/custom-models": "https://github.com/tradle/custom-models",
     "@tradle/models": "https://github.com/tradle/models",
     "co": "^4.6.0",
+    "deep-equal": "^1.0.1",
     "dynogels": "^8.0.1",
     "graphql": "^0.10.3",
     "graphql-date": "^1.0.3",
