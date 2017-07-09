@@ -68,11 +68,12 @@ co(function* () {
     form.time = date
     delete form.object.time
 
-    debugger
+    // debugger
     yield table.create(form)
     const result = yield table.get({
-      _author: form.author,
-      _time: form.time
+      _link: form.link
+      // _author: form.author,
+      // _time: form.time
     })
 
     console.log(result)

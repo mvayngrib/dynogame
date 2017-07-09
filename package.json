@@ -6,6 +6,7 @@
   "dependencies": {
     "@tradle/custom-models": "https://github.com/tradle/custom-models",
     "@tradle/models": "https://github.com/tradle/models",
+    "clone": "^2.1.1",
     "co": "^4.6.0",
     "deep-equal": "^1.0.1",
     "dynogels": "^8.0.1",

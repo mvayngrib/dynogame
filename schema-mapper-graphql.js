@@ -1,8 +1,4 @@
-const co = require('co').wrap
 const debug = require('debug')('tradle:graphql-schema')
-const promisify = require('pify')
-const deepEqual = require('deep-equal')
-const pick = require('object.pick')
 const {
   graphql,
   GraphQLSchema,
@@ -22,8 +18,8 @@ const TimestampType = require('./timestamp')
 // const GraphQLDate = require('graphql-date')
 const {
   GraphQLDate,
-  GraphQLTime,
-  GraphQLDateTime
+  // GraphQLTime,
+  // GraphQLDateTime
 } = require('graphql-iso-date')
 
 const {
@@ -34,91 +30,52 @@ const {
   getRequiredProperties,
   getMutationProperties,
   getProperties,
-  getRef
+  getRef,
+  cachify,
+  mapObject,
+  toNonNull,
+  getValues,
+  clone,
+  shallowClone,
+  extend,
+  deepEqual,
+  pick,
+  co
 } = require('./utils')
 
-const METADATA_PREFIX = require('./constants').prefix.metadata
+const constants = require('./constants')
+const { hashKey, rangeKey, indexes, metadata } = constants
+const METADATA_PREFIX = constants.prefix.metadata
 const IDENTITY_FN = arg => arg
 const getTypeName = name => (name.id || name).replace(/[^a-zA-Z-_0-9]/g, '_')
 const prefixMetadataProp = prop => METADATA_PREFIX + prop
+// const prefixMetadataProps = obj => Object.keys(obj).reduce((prefixed, prop) => {
+//   prefixed[prefixMetadataProp(prop)] = obj[prop]
+//   return prefixed
+// }, {})
+
 const getGetterFieldName = type => `get_${getTypeName(type)}`
 const getListerFieldName = type => `list_${getTypeName(type)}`
-const AUTHOR_PROP = prefixMetadataProp('author')
-const TIME_PROP = prefixMetadataProp('time')
-const PRIMARY_KEY_PROPS = [AUTHOR_PROP, TIME_PROP]
-const AUTHOR_TYPE = { type: GraphQLString }
-const AUTHOR_TYPE_REQUIRED = { type: new GraphQLNonNull(AUTHOR_TYPE.type) }
-const TIME_TYPE = { type: TimestampType }
-const TIME_TYPE_REQUIRED = { type: new GraphQLNonNull(TIME_TYPE.type) }
+const getCreaterFieldName = type => `create_${getTypeName(type)}`
+const getEditerFieldName = type => `edit_${getTypeName(type)}`
+const PRIMARY_KEY_PROPS = constants.primaryKeyProperties
 
 module.exports = {
   createSchema
 }
 
 function createSchema ({ tables, objects, models }) {
-  // if (!tables) {
-  //   tables = inMemoryTables(models)
-  // }
-
   const TYPES = {}
   const LIST_TYPES = {}
-
-  /**
-   * This is the type that will be the root of our query,
-   * and the entry point into our schema.
-   */
-  const QueryType = new GraphQLObjectType({
-    name: 'Query',
-    fields: function () {
-      const fields = {}
-      getInstantiableModels(models).forEach(id => {
-        const model = models[id]
-        const { type, list } = getOrCreate({ model })
-        fields[getListerFieldName(id)] = {
-          type: list,
-          args: {
-            [AUTHOR_PROP]: AUTHOR_TYPE,
-            [TIME_PROP]: TIME_TYPE
-            // TODO:
-            // extend with props from model
-          },
-          resolve: createLister({ model })
-        }
-
-        fields[getGetterFieldName(id)] = {
-          type,
-          args: {
-            [AUTHOR_PROP]: AUTHOR_TYPE_REQUIRED,
-            [TIME_PROP]: TIME_TYPE_REQUIRED
-          },
-          resolve: createGetter({ model })
-        }
-      })
-
-      return fields
-    }
-  })
-
-  const MutationType = new GraphQLObjectType({
-    name: 'Mutation',
-    fields: function () {
-      const fields = {}
-      Object.keys(models).forEach(id => {
-        const model = models[id]
-        fields[getTypeName(id)] = createMutationType({ model })
-        return fields
-      })
-
-      return fields
-    }
-  })
+  const metadataArgs = toNonNull(metadata.types)
+  const primaryKeyArgs = toNonNull(pick(metadata.types, PRIMARY_KEY_PROPS))
 
   function createMutationType ({ model }) {
     const required = getRequiredProperties(model)
     const { properties } = model
     const propertyNames = getMutationProperties({ model, models })
     const { id } = model
-    const { type, list } = getOrCreate({ model })
+    const { type, list } = getOrCreateType({ model })
     const args = {}
     propertyNames.forEach(propertyName => {
       const property = properties[propertyName]
@@ -156,76 +113,105 @@ function createSchema ({ tables, objects, models }) {
     }
   }
 
-  function createGetter ({ model }) {
+  const getOrCreateGetter = cachify(function ({ model }) {
     return co(function* getter (root, props) {
       const key = getPrimaryKeyProps(props)
       // TODO: add ProjectionExpression with attributes to fetch
       const result = yield tables[model.id].get(key)
       return result.toJSON()
     })
+  }, ({ model }) => model.id)
+
+  function getQueryBy (props) {
+    if (hashKey in props) {
+      return {
+        value: props[hashKey],
+        // rangeKey: props[rangeKey]
+      }
+    }
+
+    const index = indexes.find(({ hashKey }) => hashKey in props)
+    if (index) {
+      return {
+        index: index.name,
+        value: props[index.hashKey],
+        // rangeKey: props[index.rangeKey]
+      }
+    }
   }
 
-  function listByPrimaryKeys (model, key) {
-    return tables[model.id]
-      .query(key[AUTHOR_PROP])
-      .exec()
+  const runQuery = co(function* ({ model, key, props }) {
+    let query = tables[model.id].query(key.value)
+    if (key.index) {
+      query = query.usingIndex(key.index)
+    }
+
+    const { Count, Items } = yield query.exec()
+    return filterResults(Items, props)
+  })
+
+  function filterResults (results, props) {
+    results = resultsToJson(results)
+    const matchBy = Object.keys(props)
+    if (!matchBy.length) return results
+
+    return results.filter(result => {
+      return deepEqual(pick(result, matchBy), props)
+    })
   }
 
-  function search (model, props) {
+  const runSearch = co(function* ({ model, props }) {
     debug('scanning based on arbitrary attributes is not yet implemented')
     // maybe check if query is possible, then filter the results
     // otherwise scan
-    throw new Error('implement scanning')
-  }
+    // throw new Error('implement scanning')
+    debug('TODO: implement more efficient scanning')
+    const { Count, Items } = yield tables[model.id].scan().exec()
+    return filterResults(Items, props)
+  })
 
-  function createLister ({ model }) {
-    const { id } = model
+  const getOrCreateLister = cachify(function ({ model }) {
     return co(function* (root, props) {
-      const primaryKey = getPrimaryKeyProps(props)
+      const primaryKey = getQueryBy(props)
       let results
-      if (deepEqual(primaryKey, props)) {
-        results = yield listByPrimaryKeys(model, props)
+      if (primaryKey) {
+        results = yield runQuery({ model, key: primaryKey, props })
       } else {
-        results = yield search(model, props)
+        results = yield runSearch({ model, props })
       }
 
-      const { Count, Items } = results
-      if (!Count) return []
+      if (!results.length) return []
 
       const required = getRequiredProperties(model)
-      const first = Items[0].toJSON()
+      const first = results[0]
       const missing = required.filter(prop => !(prop in first))
       if (missing.length) {
         debug(`missing properties: ${missing.join(', ')}`)
       }
 
       // for now
-      return [first].concat(resultsToJson(Items.slice(1)))
+      return results
     })
-  }
+  }, ({ model }) => model.id)
 
   function resultsToJson (items) {
-    return Array.isArray(items)
-      ? items.map(item => item.toJSON())
-      : items.toJSON()
+    if (Array.isArray(items)) {
+      return items.map(item => item.toJSON ? item.toJSON() : item)
+    }
+
+    return items.toJSON ? items.toJSON() : items
   }
 
   function getPrimaryKeyProps (props) {
     return pick(props, PRIMARY_KEY_PROPS)
   }
 
-  function getOrCreate ({ model }) {
+  const getOrCreateType = cachify(function ({ model }) {
     const { id } = model
-    if (!TYPES[id]) {
-      TYPES[id] = createType({ model })
-      LIST_TYPES[id] = new GraphQLList(TYPES[id])
-    }
-
-    return {
-      type: TYPES[id],
-      list: LIST_TYPES[id]
-    }
-  }
+    const type = createType({ model })
+    const list = new GraphQLList(type)
+    return { type, list }
+  }, ({ model }) => model.id)
 
   function sanitizeEnumValueName (id) {
     return id.replace(/[^_a-zA-Z0-9]/g, '_')
@@ -263,11 +249,7 @@ function createSchema ({ tables, objects, models }) {
     return new GraphQLObjectType({
       name: getTypeName(model),
       fields: function () {
-        const fields = {
-          [AUTHOR_PROP]: AUTHOR_TYPE,
-          [TIME_PROP]: TIME_TYPE,
-        }
-
+        const fields = shallowClone(metadata.types)
         propertyNames.forEach(propertyName => {
           let field
           const property = properties[propertyName]
@@ -358,7 +340,7 @@ function createSchema ({ tables, objects, models }) {
           // return isArray ? new GraphQLList(GraphQLObjectType) : GraphQLObjectType
         }
 
-        const RangeType = getOrCreate({ model: range })
+        const RangeType = getOrCreateType({ model: range })
         return isArray ? RangeType.list : RangeType.type
       case 'enum':
         debug(`unexpected property type: ${type}`)
@@ -370,13 +352,54 @@ function createSchema ({ tables, objects, models }) {
     }
   }
 
+  /**
+   * This is the type that will be the root of our query,
+   * and the entry point into our schema.
+   */
+  const QueryType = new GraphQLObjectType({
+    name: 'Query',
+    fields: function () {
+      const fields = {}
+      getInstantiableModels(models).forEach(id => {
+        const model = models[id]
+        const { type, list } = getOrCreateType({ model })
+        fields[getListerFieldName(id)] = {
+          type: list,
+          args: extend({
+            // TODO:
+            // extend with props from model
+          }, metadata.types), // nullable metadata
+          resolve: getOrCreateLister({ model })
+        }
+
+        fields[getGetterFieldName(id)] = {
+          type,
+          args: primaryKeyArgs,
+          resolve: getOrCreateGetter({ model })
+        }
+      })
+
+      return fields
+    }
+  })
+
+  const MutationType = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: function () {
+      const fields = {}
+      Object.keys(models).forEach(id => {
+        const model = models[id]
+        fields[getCreaterFieldName(id)] = createMutationType({ model })
+        return fields
+      })
+
+      return fields
+    }
+  })
+
   return new GraphQLSchema({
     query: QueryType,
     mutation: MutationType,
     types: getValues(TYPES)
   })
-}
-
-function getValues (obj) {
-  return Object.keys(obj).map(key => obj[key])
 }

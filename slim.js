@@ -21,7 +21,7 @@ function getSlimVersion ({ item, model }) {
   const all = getProperties(model)
   let chosenProps = all
   let slim = item
-  for (const filter of chosenProps_PREFERENCES) {
+  for (const filter of SLIM_PREFERENCES) {
     const size = JSON.stringify(slim).length
     if (size < 1000) return slim
 
@@ -30,7 +30,7 @@ function getSlimVersion ({ item, model }) {
       return filter({
         model,
         propertyName,
-        property: properties[propertyName],
+        property: model.properties[propertyName],
         value: item[propertyName]
       })
     })

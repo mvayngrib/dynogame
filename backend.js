@@ -9,7 +9,8 @@ const dynogels = require('dynogels')
 const createTables = promisify(dynogels.createTables)
 const { isEmailProperty, isInlinedProperty } = require('./utils')
 const constants = require('./constants')
-const { hashKey, rangeKey } = constants
+const slimmer = require('./slim')
+const { hashKey, rangeKey, indexes } = constants
 const METADATA_PREFIX = constants.prefix.metadata
 const DATA_PREFIX = constants.prefix.data
 const RESOLVED = Promise.resolve()
@@ -17,7 +18,7 @@ const RESOLVED = Promise.resolve()
 // const DATA_PREFIX = 'd'
 // don't prefix for now, disallow _ as first character in model props
 const ensureTablesCache = {}
-const ensureTables =  co(function* (tables) {
+const ensureTables = co(function* (tables) {
   for (let id in tables) {
     if (!(id in ensureTablesCache)) {
       ensureTablesCache[id] = tables[id].createTable()
@@ -116,10 +117,15 @@ function toDynogelsSchema ({ model, models }) {
     hashKey,
     tableName: getTableName(model),
     timestamps: true,
-    createdAt: false, //prefixProp('dateCreated'),
+    createdAt: false,
     updatedAt: prefixProp('dateUpdated'),
-    schema
+    schema,
+    indexes: indexes.concat(getIndexes({ model, models }))
   }
+}
+
+function getIndexes ({ model, models }) {
+  return []
 }
 
 function getTable ({ model, models, objects }) {
@@ -159,13 +165,17 @@ function wrapTable ({ table, model, objects }) {
     return wrapInstance(result)
   })
 
+  const _get = rangeKey
+    ? key => table.get(key[hashKey], key[rangeKey])
+    : key => table.get(key[hashKey])
+
   const get = co(function* (key) {
-    const result = yield table.get(key[hashKey], key[rangeKey])
+    const result = yield _get(key)
     return wrapInstance(result)
   })
 
   const update = co(function* (item, options) {
-    const slim = getSlim(item)
+    const slim = slimmer.slim(item)
     const putSlim = table.update(deflate(item), options)
     const putFat = slim === item ? RESOLVED : objects.putObject(item)
     // const result = yield table.update(deflate(item), options)

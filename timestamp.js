@@ -2,26 +2,24 @@ const { Kind } = require('graphql/language')
 const { GraphQLScalarType } = require('graphql')
 
 function serializeDate (value) {
-  debugger
   if (value instanceof Date) {
-    return String(value.getTime())
+    return value.getTime()
   } else if (typeof value === 'number') {
-    return String(Math.trunc(value))
+    return Math.trunc(value)
   } else if (typeof value === 'string') {
-    return String(Date.parse(value))
+    return Date.parse(value)
   }
 
   return null
 }
 
 function parseDate (value) {
-  debugger
   if (value === null) {
     return null
   }
 
   try {
-    return new String(Date(value).getTime())
+    return new Date(value).getTime()
   } catch (err) {
     return null
   }
@@ -29,7 +27,7 @@ function parseDate (value) {
 
 function parseDateFromLiteral (ast) {
   if (ast.kind === Kind.INT || !isNaN(ast.value)) {
-    return String(parseInt(ast.value, 10))
+    return parseInt(ast.value, 10)
   } else if (ast.kind === Kind.STRING) {
     return parseDate(ast.value)
   }
@@ -37,14 +35,21 @@ function parseDateFromLiteral (ast) {
   return null
 }
 
+function andStringify (fn) {
+  return function (...args) {
+    const result = fn.apply(this, args)
+    return result == null ? null : result + ''
+  }
+}
+
 const TimestampType = new GraphQLScalarType({
   name: 'Timestamp',
   description:
     'The javascript `Date` as integer. Type represents date and time ' +
     'as number of milliseconds from start of UNIX epoch.',
-  serialize: serializeDate,
-  parseValue: parseDate,
-  parseLiteral: parseDateFromLiteral,
+  serialize: andStringify(serializeDate),
+  parseValue: andStringify(parseDate),
+  parseLiteral: andStringify(parseDateFromLiteral),
 })
 
 module.exports = TimestampType

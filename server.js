@@ -29,7 +29,7 @@ const objects = {
 }
 
 const port = 4000
-const time = '1499486259331' //new Date(1499486259331).toISOString()
+const time = String(1499486259331)
 const tables = getTables({ models, objects })
 // const client = new Client({
 //   networkInterface: createNetworkInterface({
