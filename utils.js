@@ -3,6 +3,7 @@ module.exports = {
   isInlinedProperty,
   getProperties,
   getRequiredProperties,
+  getMutationProperties,
   isRequired,
   getRef,
   isInstantiable,
@@ -39,7 +40,7 @@ function isRequired ({ model, propertyName }) {
 }
 
 function getRequiredProperties (model) {
-  return model.required || Object.keys(model.properties)
+  return model.required || []//Object.keys(model.properties)
 }
 
 function getRef (property) {
@@ -64,4 +65,19 @@ function isInstantiable (model) {
   }
 
   return true
+}
+
+function getMutationProperties ({ model, models }) {
+  const { properties } = model
+  return Object.keys(properties).filter(propertyName => {
+    const property = properties[propertyName]
+    const { type } = property
+    if (type !== 'object' && type !== 'array') {
+      return true
+    }
+
+    if (isInlinedProperty({ property, models })) {
+      return true
+    }
+  })
 }

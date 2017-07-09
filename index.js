@@ -16,12 +16,12 @@ const formModels = [
   // .filter(model => model.subClassOf !== 'tradle.Enum')
 
 const {
-  toDynogelsSchema,
-  toDynogelsObject,
-  defineTable,
+  // toDynogelsSchema,
+  // toDynogelsObject,
+  getTable,
   getTableName,
   // getKey
-} = require('./schema-mapper-dynogels')
+} = require('./backend')
 
 // const {
 //   toGraphQL
@@ -39,7 +39,7 @@ const tables = {}
 for (const model of formModels) {
   const { id } = model
   // console.log(models['tradle.Country'])
-  tables[id] = defineTable({
+  tables[id] = getTable({
     model,
     models,
     objects: {
@@ -71,8 +71,8 @@ co(function* () {
     debugger
     yield table.create(form)
     const result = yield table.get({
-      author: form.author,
-      time: form.time
+      _author: form.author,
+      _time: form.time
     })
 
     console.log(result)
