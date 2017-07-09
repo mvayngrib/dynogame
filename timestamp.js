@@ -1,37 +1,40 @@
 const { Kind } = require('graphql/language')
 const { GraphQLScalarType } = require('graphql')
 
-function serializeDate(value) {
+function serializeDate (value) {
+  debugger
   if (value instanceof Date) {
-    return value.getTime();
+    return String(value.getTime())
   } else if (typeof value === 'number') {
-    return Math.trunc(value);
+    return String(Math.trunc(value))
   } else if (typeof value === 'string') {
-    return Date.parse(value);
+    return String(Date.parse(value))
   }
-  return null;
+
+  return null
 }
 
-function parseDate(value) {
+function parseDate (value) {
+  debugger
   if (value === null) {
-    return null;
+    return null
   }
 
   try {
-    return new Date(value);
+    return new String(Date(value).getTime())
   } catch (err) {
-    return null;
+    return null
   }
 }
 
-function parseDateFromLiteral(ast) {
-  if (ast.kind === Kind.INT) {
-    const num = parseInt(ast.value, 10);
-    return new Date(num);
+function parseDateFromLiteral (ast) {
+  if (ast.kind === Kind.INT || !isNaN(ast.value)) {
+    return String(parseInt(ast.value, 10))
   } else if (ast.kind === Kind.STRING) {
-    return parseDate(ast.value);
+    return parseDate(ast.value)
   }
-  return null;
+
+  return null
 }
 
 const TimestampType = new GraphQLScalarType({
@@ -42,6 +45,6 @@ const TimestampType = new GraphQLScalarType({
   serialize: serializeDate,
   parseValue: parseDate,
   parseLiteral: parseDateFromLiteral,
-});
+})
 
-module.exports = TimestampType;
+module.exports = TimestampType

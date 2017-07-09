@@ -18,7 +18,7 @@ const {
 } = require('graphql')
 
 const GraphQLJSON = require('graphql-type-json')
-// const TimestampType = require('./timestamp')
+const TimestampType = require('./timestamp')
 // const GraphQLDate = require('graphql-date')
 const {
   GraphQLDate,
@@ -48,7 +48,7 @@ const TIME_PROP = prefixMetadataProp('time')
 const PRIMARY_KEY_PROPS = [AUTHOR_PROP, TIME_PROP]
 const AUTHOR_TYPE = { type: GraphQLString }
 const AUTHOR_TYPE_REQUIRED = { type: new GraphQLNonNull(AUTHOR_TYPE.type) }
-const TIME_TYPE = { type: GraphQLString }
+const TIME_TYPE = { type: TimestampType }
 const TIME_TYPE_REQUIRED = { type: new GraphQLNonNull(TIME_TYPE.type) }
 
 module.exports = {
