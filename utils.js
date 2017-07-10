@@ -33,6 +33,7 @@ const PROTOCOL_PROPS = {
 const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
 const getMetadataProps = object => pick(object, ['link', 'permalink', 'time', 'author'])
+const defaultIndexes = require('./constants').indexes
 
 module.exports = {
   co,
@@ -61,7 +62,8 @@ module.exports = {
   mapObject,
   withProtocolProps,
   normalizeModels,
-  getMetadataProps
+  getMetadataProps,
+  getIndexes
 }
 
 function isEmailProperty ({ propertyName, property }) {
@@ -229,6 +231,10 @@ function fromResourceStub (props) {
     link,
     permalink
   }
+}
+
+function getIndexes ({ model, models }) {
+  return defaultIndexes
 }
 
 // function getNonProtocolProps (props) {

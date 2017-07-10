@@ -20,7 +20,8 @@ const models = normalizeModels(modelsArray.reduce((map, model) => {
 }, {}))
 
 const { createSchema } = require('./schema-mapper-graphql')
-const { getTables, ensureTables } = require('./backend')
+const { getTables } = require('./backend')
+const createResolvers = require('./resolvers')
 const METADATA_PREFIX = require('./constants').prefix.metadata
 const objects = {
   putObject: function () {
@@ -34,6 +35,7 @@ const objects = {
 const port = 4000
 const time = String(1499486259331)
 const tables = getTables({ models, objects })
+const resolvers = createResolvers({ tables, models, objects })
 // const client = new Client({
 //   networkInterface: createNetworkInterface({
 //     uri: `http://localhost:${port}/graphql`,
@@ -84,7 +86,7 @@ co(function* () {
   // }, { overwrite: false })
 })().catch(console.error)
 
-const { schema, schemas } = createSchema({ models, tables })
+const { schema, schemas } = createSchema({ resolvers, models, tables })
 
 const app = express()
 const GRAPHQL_PATH = '/graphql'

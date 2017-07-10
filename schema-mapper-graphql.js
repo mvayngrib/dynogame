@@ -42,7 +42,6 @@ const {
   clone,
   shallowClone,
   extend,
-  deepEqual,
   pick,
   co
 } = require('./utils')
@@ -69,7 +68,7 @@ module.exports = {
   createSchema
 }
 
-function createSchema ({ tables, objects, models }) {
+function createSchema ({ resolvers, objects, models }) {
   const TYPES = {}
   const LIST_TYPES = {}
   const metadataArgs = toNonNull(metadata.types)
@@ -133,8 +132,7 @@ function createSchema ({ tables, objects, models }) {
   const getMutater = cachifyByModel(function ({ model }) {
     return co(function* (root, props) {
       validateMutation({ model, props })
-      const result = yield tables[model.id].update(props)
-      return resultsToJson(result)
+      return resolvers.update({ model, props })
     })
   })
 
@@ -159,56 +157,7 @@ function createSchema ({ tables, objects, models }) {
     if (!key) key = getPrimaryKeyProps(props)
 
     // TODO: add ProjectionExpression with attributes to fetch
-    const result = yield tables[model.id].get(key)
-    return result.toJSON()
-  })
-
-  function getQueryBy (props) {
-    if (hashKey in props) {
-      return {
-        value: props[hashKey],
-        // rangeKey: props[rangeKey]
-      }
-    }
-
-    const index = indexes.find(({ hashKey }) => hashKey in props)
-    if (index) {
-      return {
-        index: index.name,
-        value: props[index.hashKey],
-        // rangeKey: props[index.rangeKey]
-      }
-    }
-  }
-
-  const runQuery = co(function* ({ model, key, props }) {
-    let query = tables[model.id].query(key.value)
-    if (key.index) {
-      query = query.usingIndex(key.index)
-    }
-
-    const { Count, Items } = yield query.exec()
-    return filterResults(Items, props)
-  })
-
-  function filterResults (results, props) {
-    results = resultsToJson(results)
-    const matchBy = Object.keys(props)
-    if (!matchBy.length) return results
-
-    return results.filter(result => {
-      return deepEqual(pick(result, matchBy), props)
-    })
-  }
-
-  const runSearch = co(function* ({ model, props }) {
-    debug('scanning based on arbitrary attributes is not yet implemented')
-    // maybe check if query is possible, then filter the results
-    // otherwise scan
-    // throw new Error('implement scanning')
-    debug('TODO: implement more efficient scanning')
-    const { Count, Items } = yield tables[model.id].scan().exec()
-    return filterResults(Items, props)
+    return resolvers.get({ model, key })
   })
 
   const getBacklinkResolver = cachifyByModel(function ({ model }) {
@@ -226,38 +175,10 @@ function createSchema ({ tables, objects, models }) {
   })
 
   const getLister = cachifyByModel(function ({ model }) {
-    return co(function* (root, props) {
-      const primaryKey = getQueryBy(props)
-      let results
-      if (primaryKey) {
-        results = yield runQuery({ model, key: primaryKey, props })
-      } else {
-        results = yield runSearch({ model, props })
-      }
-
-      if (!results.length) return []
-
-      const required = getRequiredProperties(model)
-      const first = results[0]
-      const missing = required.filter(prop => !(prop in first))
-      if (missing.length) {
-        debug(`missing properties: ${missing.join(', ')}`)
-      }
-
-      // for now
-      return results
-    })
-  })
-
-  function resultsToJson (items) {
-    if (Array.isArray(items)) {
-      return items.map(item => {
-        return item.toJSON ? item.toJSON() : item
-      })
+    return function (source, args, context, info) {
+      return resolvers.list({ model, source, args, context, info })
     }
-
-    return items.toJSON ? items.toJSON() : items
-  }
+  })
 
   function getPrimaryKeyProps (props) {
     return pick(props, PRIMARY_KEY_PROPS)

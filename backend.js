@@ -1,12 +1,16 @@
+// const debug = require('debug')('tradle:dynogels-mapper')
 const Joi = require('joi')
 const dynogels = require('dynogels')
+const createResolvers = require('./resolvers')
 const {
   co,
   extend,
   pick,
   omit,
+  deepEqual,
   promisify,
-  getMetadataProps
+  getMetadataProps,
+  getIndexes
 } = require('./utils')
 const createTables = promisify(dynogels.createTables)
 const constants = require('./constants')
@@ -15,7 +19,7 @@ const slimmer = require('./slim')
 const { toJoi } = require('./joi')
 const Errors = require('./errors')
 const Prefixer = require('./prefixer')
-const { hashKey, rangeKey, indexes } = constants
+const { hashKey, rangeKey } = constants
 const RESOLVED = Promise.resolve()
 // const METADATA_PREFIX = 'm'
 // const DATA_PREFIX = 'd'
@@ -90,12 +94,8 @@ function toDynogelsSchema ({ model, models }) {
     createdAt: false,
     updatedAt: Prefixer.metadataProp('dateUpdated'),
     schema,
-    indexes: indexes.concat(getIndexes({ model, models }))
+    indexes: getIndexes({ model, models })
   }
-}
-
-function getIndexes ({ model, models }) {
-  return []
 }
 
 function getTable ({ model, models, objects }) {
@@ -247,6 +247,12 @@ function getTableName (model) {
   return id.replace(/[.]/g, '_')
 }
 
+function getResolvers ({ tables, models, objects }) {
+  if (!tables) tables = getTables({ models, objects })
+
+  return createResolvers({ tables, models, objects })
+}
+
 module.exports = {
   toDynogelsSchema,
   deflate,
@@ -255,6 +261,7 @@ module.exports = {
   // getKey,
   getTable,
   getTables,
-  ensureTables
+  ensureTables,
+  getResolvers
   // list
 }

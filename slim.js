@@ -48,8 +48,6 @@ function minusPhotos ({ property }) {
 }
 
 function minusBigValues ({ value }) {
-  if (value === undefined) debugger
-
   const str = typeof value === 'string' ? value : JSON.stringify(value)
   return str.length < 50
 }
