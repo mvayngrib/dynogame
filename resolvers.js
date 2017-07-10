@@ -28,7 +28,6 @@ module.exports = function createResolvers ({ tables, models, objects }) {
     // debug('scanning based on arbitrary attributes is not yet implemented')
     // maybe check if query is possible, then filter the results
     // otherwise scan
-    // throw new Error('implement scanning')
     debug('TODO: implement more efficient scanning')
     const { Count, Items } = yield tables[model.id].scan().exec()
     return filterResults(Items, props)
@@ -56,15 +55,15 @@ module.exports = function createResolvers ({ tables, models, objects }) {
 
   const list = co(function* ({ model, source, args, context, info }) {
     const props = args
-    const primaryKey = getQueryBy({ model, props })
+    const primaryOrIndexKey = getQueryBy({ model, props })
     let results
-    if (primaryKey) {
-      results = yield runQuery({ model, key: primaryKey, props })
+    if (primaryOrIndexKey) {
+      results = yield runQuery({ model, props, key: primaryOrIndexKey })
     } else {
       results = yield runSearch({ model, props })
     }
 
-    if (!results.length) return []
+    if (!results.length) return results
 
     const required = getRequiredProperties(model)
     const first = results[0]

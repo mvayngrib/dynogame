@@ -1,3 +1,5 @@
+require('isomorphic-fetch')
+
 const http = require('http')
 const co = require('co').wrap
 const pick = require('object.pick')
@@ -19,10 +21,9 @@ const models = normalizeModels(modelsArray.reduce((map, model) => {
   return map
 }, {}))
 
-const { createSchema } = require('./schema-mapper-graphql')
+const { createSchema } = require('./schemas')
 const { getTables } = require('./backend')
 const createResolvers = require('./resolvers')
-const METADATA_PREFIX = require('./constants').prefix.metadata
 const objects = {
   putObject: function () {
     throw new Error('putObject not available in this environment')
@@ -106,3 +107,23 @@ const client = createClient({
   models,
   endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
 })
+
+setTimeout(function () {
+  const gql = require('graphql-tag')
+  client.query({
+      query: gql(`
+        query {
+          rl_tradle_Verification {
+            link,
+            document
+          }
+        }
+      `),
+    })
+    .then(data => console.log(prettify(data)))
+    .catch(error => console.error(error));
+}, 1000)
+
+function prettify (obj) {
+  return JSON.stringify(obj, null, 2)
+}

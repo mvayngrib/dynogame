@@ -12,14 +12,13 @@ const {
   getMetadataProps,
   getIndexes
 } = require('./utils')
-const createTables = promisify(dynogels.createTables)
+
 const constants = require('./constants')
-const { prefix } = constants
+const { prefix, hashKey, rangeKey } = constants
 const slimmer = require('./slim')
 const { toJoi } = require('./joi')
 const Errors = require('./errors')
 const Prefixer = require('./prefixer')
-const { hashKey, rangeKey } = constants
 const RESOLVED = Promise.resolve()
 // const METADATA_PREFIX = 'm'
 // const DATA_PREFIX = 'd'

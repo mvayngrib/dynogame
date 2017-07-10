@@ -406,6 +406,7 @@ function createSchema ({ resolvers, objects, models }) {
 
   const schemas = {}
   Object.keys(models).forEach(id => {
+    // lazy
     schemas.__defineGetter__(id, () => {
       return getType({ model: models[id] })
     })
