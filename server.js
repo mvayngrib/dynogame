@@ -3,8 +3,6 @@ require('isomorphic-fetch')
 const http = require('http')
 const co = require('co').wrap
 const pick = require('object.pick')
-// const Client = require('apollo-client')
-// const { createNetworkInterface } = Client
 const express = require('express')
 const expressGraphQL = require('express-graphql')
 const dynogels = require('dynogels')
@@ -37,12 +35,6 @@ const port = 4000
 const time = String(1499486259331)
 const tables = getTables({ models, objects })
 const resolvers = createResolvers({ tables, models, objects })
-// const client = new Client({
-//   networkInterface: createNetworkInterface({
-//     uri: `http://localhost:${port}/graphql`,
-//   })
-// })
-
 const fixtures = require('./fixtures')
 co(function* () {
   for (const fixture of fixtures) {
@@ -108,22 +100,22 @@ const client = createClient({
   endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
 })
 
-setTimeout(function () {
-  const gql = require('graphql-tag')
-  client.query({
-      query: gql(`
-        query {
-          rl_tradle_Verification {
-            link,
-            document
-          }
-        }
-      `),
-    })
-    .then(data => console.log(prettify(data)))
-    .catch(error => console.error(error));
-}, 1000)
+// setTimeout(function () {
+//   const gql = require('graphql-tag')
+//   client.query({
+//       query: gql(`
+//         query {
+//           rl_tradle_Verification {
+//             link,
+//             document
+//           }
+//         }
+//       `),
+//     })
+//     .then(data => console.log(prettify(data)))
+//     .catch(error => console.error(error));
+// }, 1000)
 
-function prettify (obj) {
-  return JSON.stringify(obj, null, 2)
-}
+// function prettify (obj) {
+//   return JSON.stringify(obj, null, 2)
+// }

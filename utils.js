@@ -101,9 +101,9 @@ function getRef (property) {
 
 function getProperties (model) {
   return Object.keys(model.properties)
-    .filter(propertyName => {
-      return propertyName.charAt(0) !== '_'
-    })
+    // .filter(propertyName => {
+    //   return propertyName.charAt(0) !== '_'
+    // })
 }
 
 function getInstantiableModels (models) {
@@ -111,8 +111,8 @@ function getInstantiableModels (models) {
 }
 
 function isInstantiable (model) {
-  const { id, isInterface } = model
-  if (id === 'tradle.Model' || isInterface) {
+  const { id, isInterface, abstract } = model
+  if (id === 'tradle.Model' || isInterface || abstract) {
     return false
   }
 
@@ -174,6 +174,18 @@ function mapObject (obj, mapper) {
   return mapped
 }
 
+function filterObject (obj, filter) {
+  const filtered = {}
+  for (let key in obj) {
+    let val = obj[key]
+    if (filter(val)) {
+      filtered[key] = val
+    }
+  }
+
+  return filtered
+}
+
 function withProtocolProps (model) {
   let required = model.required || []
   while (true) {
@@ -214,7 +226,15 @@ function unique (strings) {
   return Object.keys(obj)
 }
 
+function hasNonProtocolProps (model) {
+  return !!Object.keys(omit(model.properties, PROTOCOL_PROP_NAMES)).length
+}
+
 function normalizeModels (models) {
+  // models = filterObject(models, model => {
+  //   return !isInstantiable(model) || hasNonProtocolProps(model)
+  // })
+
   return mapObject(models, withProtocolProps)
 }
 

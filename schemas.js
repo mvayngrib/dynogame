@@ -192,14 +192,14 @@ function createSchema ({ resolvers, objects, models }) {
     return new GraphQLObjectType({
       name: getTypeName(model),
       description: model.description,
-      fields: {
+      fields: () => ({
         id: {
           type: new GraphQLNonNull(GraphQLString)
         },
         title: {
           type: GraphQLString
         }
-      }
+      })
     })
 
     // TODO: uncomment after enums are refactored
@@ -229,6 +229,24 @@ function createSchema ({ resolvers, objects, models }) {
     }
   }
 
+  const getMetadataWrappedType = cachifyByModel(function ({ model }) {
+    if (isEnumModel(model)) {
+      return getType({ model })
+    }
+
+    return new GraphQLObjectType({
+      name: getTypeName(model),
+      description: model.description,
+      fields: () => extend({
+        object: {
+          type: getType({ model }),
+          description: model.description,
+          resolve: IDENTITY_FN
+        }
+      }, metadata.types)
+    })
+  })
+
   const getType = cachifyByModel(function ({ model }) {
     if (isEnumModel(model)) {
       return createEnumType({ model })
@@ -238,10 +256,10 @@ function createSchema ({ resolvers, objects, models }) {
     const { properties } = model
     const propertyNames = getProperties(model)
     return new GraphQLObjectType({
-      name: getTypeName(model),
+      name: '_' + getTypeName(model),
       description: model.description,
-      fields: function () {
-        const fields = shallowClone(metadata.types)
+      fields: () => {
+        const fields = {}
         propertyNames.forEach(propertyName => {
           let field
           const property = properties[propertyName]
@@ -306,6 +324,7 @@ function createSchema ({ resolvers, objects, models }) {
   function _getFieldType ({ propertyName, property, model, isInput }) {
     const { type } = property
     const ref = getRef(property)
+    const isArray = type === 'array'
     switch (type) {
       case 'string':
         return { type: GraphQLString }
@@ -317,38 +336,12 @@ function createSchema ({ resolvers, objects, models }) {
         return { type: GraphQLDate }
       case 'object':
       case 'array':
-        if (isInlinedProperty({ property, model, models })) {
-          debug(`TODO: schema for inlined property ${model.id}.${propertyName}`)
-          return { type: GraphQLJSON }
-        }
-
-        const isArray = type === 'array'
-        const range = models[ref]
-        if (!range || !isInstantiable(range)) {
-          debug(`not sure how to handle property with range ${ref}`)
-          return { type: GraphQLJSON }
-          // return isArray ? new GraphQLList(GraphQLObjectType) : GraphQLObjectType
-        }
-
-        if (isInput) {
-          return { type: ResourceStubType }
-        }
-
-        const RangeType = getType({ model: range })
-        let fieldType, resolve
-        if (isArray) {
-          fieldType = new GraphQLList(RangeType)
-          resolve = getBacklinkResolver({ model: range })
-        } else {
-          fieldType = RangeType
-          resolve = getLinkResolver({ model: range })
-        }
-
-        // const resolve = isArray ? getLister({ model: range })
-        return {
-          type: fieldType,
-          resolve
-        }
+        return getRefType({
+          model,
+          propertyName,
+          property,
+          isInput
+        })
       case 'enum':
         debug(`unexpected property type: ${type}`)
         return { type: GraphQLJSON }
@@ -365,11 +358,11 @@ function createSchema ({ resolvers, objects, models }) {
    */
   const QueryType = new GraphQLObjectType({
     name: 'Query',
-    fields: function () {
+    fields: () => {
       const fields = {}
       getInstantiableModels(models).forEach(id => {
         const model = models[id]
-        const type = getType({ model })
+        const type = getMetadataWrappedType({ model })
         fields[getListerFieldName(id)] = {
           type: new GraphQLList(type),
           args: extend({
@@ -392,7 +385,7 @@ function createSchema ({ resolvers, objects, models }) {
 
   const MutationType = new GraphQLObjectType({
     name: 'Mutation',
-    fields: function () {
+    fields: () => {
       const fields = {}
       Object.keys(models).forEach(id => {
         const model = models[id]
@@ -411,6 +404,61 @@ function createSchema ({ resolvers, objects, models }) {
       return getType({ model: models[id] })
     })
   })
+
+  function getTypeWrapper (type, plural) {
+    return {
+      type: plural ? type : new GraphQLList(type)
+    }
+  }
+
+  function getRefType ({ propertyName, property, model, isInput }) {
+    let { type, resolve } = _getRefType(arguments[0])
+    if (property.type === 'array') {
+      type = new GraphQLList(type)
+    }
+
+    return { type, resolve }
+  }
+
+  function _getRefType ({ propertyName, property, model, isInput }) {
+    const ref = getRef(property)
+    const range = models[ref]
+    if (isInlinedProperty({ property, model, models })) {
+      debug(`TODO: schema for inlined property ${model.id}.${propertyName}`)
+      if (ref) {
+        if (isInput) {
+          return { type: ResourceStubType }
+        }
+
+        return {
+          type: getType({ model: range })
+        }
+      }
+
+      return {
+        type: GraphQLJSON
+      }
+    }
+
+    if (!range || !isInstantiable(range)) {
+      debug(`not sure how to handle property with range ${ref}`)
+      return { type: GraphQLJSON }
+      // return isArray ? new GraphQLList(GraphQLObjectType) : GraphQLObjectType
+    }
+
+    if (isInput) {
+      return { type: ResourceStubType }
+    }
+
+    const resolve = property.type === 'array'
+      ? getBacklinkResolver({ model: range })
+      : getLinkResolver({ model: range })
+
+    return {
+      type: getMetadataWrappedType({ model: range }),
+      resolve
+    }
+  }
 
   return {
     schema: new GraphQLSchema({
