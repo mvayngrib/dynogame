@@ -140,9 +140,7 @@ function wrapTable ({ table, model, objects }) {
 
   const get = co(function* (key) {
     const result = yield _get(key)
-    if (!result) throw new Errors.NotFound()
-
-    return wrapInstance(result)
+    return result && wrapInstance(result)
   })
 
   const update = co(function* (item, options) {

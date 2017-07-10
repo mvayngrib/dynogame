@@ -10,6 +10,8 @@ const prefix = {
 }
 
 const metadataProperties = {
+  id: prefix.metadata + 'id',
+  title: prefix.metadata + 'title',
   link: prefix.metadata + 'link',
   permalink: prefix.metadata + 'permalink',
   author: prefix.metadata + 'author',
@@ -17,6 +19,8 @@ const metadataProperties = {
 }
 
 const metadataTypes = {
+  [metadataProperties.id]: StringWrapper,
+  [metadataProperties.title]: StringWrapper,
   [metadataProperties.link]: StringWrapper,
   [metadataProperties.permalink]: StringWrapper,
   [metadataProperties.author]: StringWrapper,

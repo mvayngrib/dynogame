@@ -161,8 +161,17 @@ function createSchema ({ resolvers, objects, models }) {
   })
 
   const getBacklinkResolver = cachifyByModel(function ({ model }) {
-    return function (source, stubs) {
-      return Promise.all(stubs.map(stub => getByStub({ model, stub })))
+    return function (source, args, context, info) {
+      const { fieldName } = info
+      const { backlink } = models[source._t].properties[fieldName].items
+      return resolvers.list({
+        model,
+        source,
+        args: {
+          [backlink]: source.link
+        }
+      })
+      // return Promise.all(stubs.map(stub => getByStub({ model, stub })))
     }
   })
 

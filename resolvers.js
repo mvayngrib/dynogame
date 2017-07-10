@@ -11,6 +11,7 @@ const {
   getIndexes
 } = require('./utils')
 
+const { filterResults } = require('./compare')
 const { hashKey } = require('./constants')
 
 module.exports = function createResolvers ({ tables, models, objects }) {
@@ -20,8 +21,8 @@ module.exports = function createResolvers ({ tables, models, objects }) {
       query = query.usingIndex(key.index)
     }
 
-    const { Count, Items } = yield query.exec()
-    return filterResults(Items, props)
+    const result = yield query.exec()
+    return postProcessSearchResult({ model, result, props })
   })
 
   const runSearch = co(function* ({ model, props }) {
@@ -29,18 +30,16 @@ module.exports = function createResolvers ({ tables, models, objects }) {
     // maybe check if query is possible, then filter the results
     // otherwise scan
     debug('TODO: implement more efficient scanning')
-    const { Count, Items } = yield tables[model.id].scan().exec()
-    return filterResults(Items, props)
+    const result = yield tables[model.id].scan().exec()
+    return postProcessSearchResult({ model, result, props })
   })
 
-  function filterResults (results, props) {
-    results = resultsToJson(results)
-    const matchBy = Object.keys(props)
-    if (!matchBy.length) return results
+  function postProcessSearchResult ({ model, result, props }) {
+    const { Count, Items } = result
+    if (!Count) return []
 
-    return results.filter(result => {
-      return deepEqual(pick(result, matchBy), props)
-    })
+    const resources = resultsToJson(Items)
+    return filterResults({ model, resources, props })
   }
 
   const update = co(function* ({ model, props }) {
@@ -50,7 +49,7 @@ module.exports = function createResolvers ({ tables, models, objects }) {
 
   const get = co(function* ({ model, key }) {
     const result = yield tables[model.id].get(key)
-    return resultsToJson(result)
+    return result ? resultsToJson(result) : null
   })
 
   const list = co(function* ({ model, source, args, context, info }) {
