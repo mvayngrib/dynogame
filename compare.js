@@ -42,7 +42,8 @@ function filterResults ({ model, results, props }) {
   const matchBy = Object.keys(props)
   if (!matchBy.length) return results
 
-  return results.filter(resource => {
+  return results.filter(wrapper => {
+    const resource = wrapper.object
     return matchesProps({ model, resource, props })
   })
 }

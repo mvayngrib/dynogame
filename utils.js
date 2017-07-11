@@ -9,7 +9,7 @@ const omit = require('object.omit')
 const { GraphQLNonNull } = require('graphql')
 const constants = require('./constants')
 const ResourceStubType = require('./types/resource-stub')
-const { TYPE, SIG, SEQ, PREV_TO_SENDER, defaultIndexes, metadataProperties } = constants
+const { TYPE, SIG, SEQ, PREV_TO_SENDER, defaultIndexes } = constants
 const STRING_TYPE = {
   type: 'string'
 }
@@ -26,7 +26,7 @@ const PROTOCOL_PROPS = {
 
 // const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
-const METADATA_PROP_NAMES = getValues(metadataProperties)
+// const METADATA_PROP_NAMES = getValues(metadataProperties)
 // const METADATA_PROP_NAMES = Object.keys(metadataProperties)
 
 // const prefixProp = (prop, prefix) => prefix + prop
@@ -43,8 +43,8 @@ const METADATA_PROP_NAMES = getValues(metadataProperties)
 //   return prefixed
 // }
 
-const getMetadataProps = object => pick(object, METADATA_PROP_NAMES)
-const getDataProps = object => omit(object, METADATA_PROP_NAMES)
+// const getMetadataProps = object => pick(object, METADATA_PROP_NAMES)
+// const getDataProps = object => omit(object, METADATA_PROP_NAMES)
 
 function isEmailProperty ({ propertyName, property }) {
   if (property.type === 'string') {
@@ -278,7 +278,7 @@ module.exports = {
   mapObject,
   withProtocolProps,
   normalizeModels,
-  getMetadataProps,
-  getDataProps,
+  // getMetadataProps,
+  // getDataProps,
   getIndexes
 }

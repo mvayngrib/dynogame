@@ -1,13 +1,10 @@
 const pick = require('object.pick')
-const { prefix } = require('./constants')
 const {
   getProperties,
   isRequired,
   getRef,
   shallowClone
 } = require('./utils')
-
-const Prefixer = require('./prefixer')
 
 module.exports = minify
 
@@ -18,9 +15,10 @@ const MINIFY_PREFERENCES = [
   minusAll
 ]
 
-function minify ({ item, model }) {
+function minify ({ item, model, prefix }) {
   let min = shallowClone(item)
   let diff = {}
+  let isMinified
 
   for (const filter of MINIFY_PREFERENCES) {
     const size = JSON.stringify(min).length
@@ -42,13 +40,12 @@ function minify ({ item, model }) {
       if (!keep) {
         diff[propertyName] = item[propertyName]
         delete min[propertyName]
-        slimmed = true
-        min[Prefixer.metadata('min')] = true
+        isMinified = true
       }
     }
   }
 
-  return { min, diff }
+  return { min, diff, isMinified }
 }
 
 function minusPhotos ({ property }) {

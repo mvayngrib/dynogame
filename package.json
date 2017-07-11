@@ -8,6 +8,7 @@
     "@tradle/models": "https://github.com/tradle/models",
     "@tradle/validate-model": "tradle/validate-model",
     "@tradle/validate-resource": "tradle/validate-resource",
+    "bindall": "^2.0.1",
     "clone": "^2.1.1",
     "co": "^4.6.0",
     "deep-equal": "^1.0.1",

@@ -8,7 +8,8 @@ const {
   GraphQLEnumType,
   GraphQLString,
   GraphQLList,
-  GraphQLInterfaceType
+  GraphQLInterfaceType,
+  GraphQLInputObjectType
 } = require('graphql/type')
 
 const GraphQLJSON = require('graphql-type-json')
@@ -37,6 +38,7 @@ const {
   shallowClone,
   extend,
   pick,
+  omit,
   co
 } = require('./utils')
 
@@ -44,15 +46,14 @@ const constants = require('./constants')
 const { TYPE } = constants
 const StringWrapper = { type: GraphQLString }
 const TimestampType = require('./types/timestamp')
-const Prefixer = require('./prefixer')
-const metadataTypes = Prefixer.metadata({
-  id: StringWrapper,
-  title: StringWrapper,
+const metadataTypes = {
+  // id: StringWrapper,
+  // title: StringWrapper,
   link: StringWrapper,
   permalink: StringWrapper,
   author: StringWrapper,
   time: { type: TimestampType }
-})
+}
 
 const IDENTITY_FN = arg => arg
 const getTypeName = name => (name.id || name).replace(/[^a-zA-Z-_0-9]/g, '_')
@@ -61,78 +62,78 @@ const getListerFieldName = type => `rl_${getTypeName(type)}`
 const getCreaterFieldName = type => `c_${getTypeName(type)}`
 const getUpdaterFieldName = type => `u_${getTypeName(type)}`
 const getDeleterFieldName = type => `d_${getTypeName(type)}`
-const PRIMARY_KEY_PROPS = constants.primaryKeyProperties
+// const PRIMARY_KEY_PROPS = constants.primaryKeyProperties
 
 module.exports = {
   createSchema
 }
 
-function createSchema ({ resolvers, objects, models }) {
+function createSchema ({ resolvers, objects, models, primaryKeys }) {
   const TYPES = {}
-  const metadataArgs = toNonNull(metadataTypes)
-  const primaryKeyArgs = toNonNull(pick(metadataTypes, PRIMARY_KEY_PROPS))
+  // const metadataArgs = toNonNull(metadataTypes)
+  const primaryKeyArgs = toNonNull(pick(metadataTypes, primaryKeys))
 
-  function createMutationType ({ model }) {
-    const required = getRequiredProperties(model)
-    const { properties } = model
-    const propertyNames = getOnCreateProperties({ model, models })
-    const { id } = model
-    const type = getType({ model })
-    const args = shallowClone(metadataArgs)
-    propertyNames.forEach(propertyName => {
-      const property = properties[propertyName]
-      args[propertyName] = createMutationProperty({
-        propertyName,
-        property,
-        model,
-        required
-      })
+  // function createMutationType ({ model }) {
+  //   const required = getRequiredProperties(model)
+  //   const { properties } = model
+  //   const propertyNames = getOnCreateProperties({ model, models })
+  //   const { id } = model
+  //   const type = getType({ model })
+  //   const args = {}
+  //   propertyNames.forEach(propertyName => {
+  //     const property = properties[propertyName]
+  //     args[propertyName] = createMutationProperty({
+  //       propertyName,
+  //       property,
+  //       model,
+  //       required
+  //     })
 
-      return args
-    })
+  //     return args
+  //   })
 
-    return {
-      type,
-      description: `Add a ${id}`,
-      args,
-      resolve: getMutater({ model })
-    }
-  }
+  //   return {
+  //     type,
+  //     description: `Add a ${id}`,
+  //     args,
+  //     resolve: getMutater({ model })
+  //   }
+  // }
 
-  function createMutationProperty ({ propertyName, property, model, required }) {
-    const { type } = getFieldType({
-      propertyName,
-      property,
-      model,
-      isInput: true,
-      isRequired: required.indexOf(propertyName) !== -1
-    })
+  // function createMutationProperty ({ propertyName, property, model, required }) {
+  //   const { type } = getFieldType({
+  //     propertyName,
+  //     property,
+  //     model,
+  //     isInput: true,
+  //     isRequired: required.indexOf(propertyName) !== -1
+  //   })
 
-    return {
-      name: getTypeName(propertyName),
-      description: property.description,
-      type,
-      // resolve: getMutater({ model })
-      // resolve: function () {
-      //   throw new Error('implement me')
-      // }
-    }
-  }
+  //   return {
+  //     name: getTypeName(propertyName),
+  //     description: property.description,
+  //     type,
+  //     // resolve: getMutater({ model })
+  //     // resolve: function () {
+  //     //   throw new Error('implement me')
+  //     // }
+  //   }
+  // }
 
-  function validateMutation ({ model, props }) {
-    // TODO: strip metadata props, then validate
-    // return validateResource({
-    //   models,
-    //   resource: props
-    // })
-  }
+  // function validateMutation ({ model, props }) {
+  //   // TODO: strip metadata props, then validate
+  //   // return validateResource({
+  //   //   models,
+  //   //   resource: props
+  //   // })
+  // }
 
-  const getMutater = cachifyByModel(function ({ model }) {
-    return co(function* (root, props) {
-      validateMutation({ model, props })
-      return resolvers.update({ model, props })
-    })
-  })
+  // const getMutater = cachifyByModel(function ({ model }) {
+  //   return co(function* (root, props) {
+  //     validateMutation({ model, props })
+  //     return resolvers.update({ model, props })
+  //   })
+  // })
 
   const getGetter = cachifyByModel(function ({ model }) {
     return co(function* (root, props) {
@@ -147,12 +148,12 @@ function createSchema ({ resolvers, objects, models }) {
   function getByStub ({ model, stub }) {
     return getByPrimaryKey({
       model,
-      props: Prefixer.metadata(fromResourceStub(stub))
+      props: fromResourceStub(stub)
     })
   }
 
   const getByPrimaryKey = co(function* ({ model, key, props }) {
-    if (!key) key = getPrimaryKeyProps(props)
+    if (!key) key = pick(props, primaryKeys)
 
     // TODO: add ProjectionExpression with attributes to fetch
     return resolvers.get({ model, key })
@@ -167,7 +168,7 @@ function createSchema ({ resolvers, objects, models }) {
         model,
         source,
         args: {
-          [backlink]: source[Prefixer.metadata('link')]
+          [backlink]: source._metadata.link
         }
       })
     }
@@ -187,9 +188,9 @@ function createSchema ({ resolvers, objects, models }) {
     }
   })
 
-  function getPrimaryKeyProps (props) {
-    return pick(props, PRIMARY_KEY_PROPS)
-  }
+  // function getPrimaryKeyProps (props) {
+  //   return pick(props, PRIMARY_KEY_PROPS)
+  // }
 
   // function sanitizeEnumValueName (id) {
   //   return id.replace(/[^_a-zA-Z0-9]/g, '_')
@@ -234,25 +235,27 @@ function createSchema ({ resolvers, objects, models }) {
     return model.subClassOf === 'tradle.Enum' && Array.isArray(model.enum)
   }
 
-  // const getMetadataWrappedType = cachifyByModel(function ({ model }) {
-  //   if (isGoodEnumModel(model)) {
-  //     return getType({ model })
-  //   }
+  const getMetadataWrappedType = cachifyByModel(function ({ model }) {
+    if (isGoodEnumModel(model)) {
+      return getType({ model })
+    }
 
-  //   return new GraphQLObjectType({
-  //     name: getTypeName(model),
-  //     description: model.description,
-  //     fields: () => extend({
-  //       object: {
-  //         type: getType({ model }),
-  //         // description: model.description,
-  //         // resolve: function (source) {
-  //         //   return source.object
-  //         // }
-  //       }
-  //     }, metadataTypes)
-  //   })
-  // })
+    return new GraphQLObjectType({
+      name: getTypeName(model),
+      description: model.description,
+      fields: () => extend({
+        object: {
+          type: getType({ model }),
+          description: model.description,
+          resolve: function (source) {
+            return extend({
+              _metadata: omit(source, 'object')
+            }, source.object)
+          }
+        }
+      }, metadataTypes)
+    })
+  })
 
   const getType = cachifyByModel(function ({ model }) {
     if (isGoodEnumModel(model)) {
@@ -271,7 +274,7 @@ function createSchema ({ resolvers, objects, models }) {
       name: '_' + getTypeName(model),
       description: model.description,
       fields: () => {
-        const fields = shallowClone(metadataTypes)
+        const fields = {}
         propertyNames.forEach(propertyName => {
           let field
           const property = properties[propertyName]
@@ -298,7 +301,7 @@ function createSchema ({ resolvers, objects, models }) {
     })
   })
 
-  const getMetadataWrappedType = getType
+  // const getMetadataWrappedType = getType
 
   function createField ({
     propertyName,
@@ -322,8 +325,7 @@ function createSchema ({ resolvers, objects, models }) {
   }
 
   function isNullableProperty (property) {
-    const { type } = property
-    return type !== 'object' && type !== 'array' && type !== 'enum'
+    return !isComplexProperty(property.type)
   }
 
   function getFieldType (propertyInfo) {
@@ -337,7 +339,11 @@ function createSchema ({ resolvers, objects, models }) {
   }
 
   function _getFieldType ({ propertyName, property, model, isRequired, isInput }) {
-    const { type } = property
+    const { type, range } = property
+    if (range === 'json') {
+      return { type: GraphQLJSON }
+    }
+
     switch (type) {
       case 'string':
         return StringWrapper
@@ -396,19 +402,32 @@ function createSchema ({ resolvers, objects, models }) {
     }
   })
 
-  const MutationType = new GraphQLObjectType({
-    name: 'Mutation',
-    fields: () => {
-      const fields = {}
-      Object.keys(models).forEach(id => {
-        const model = models[id]
-        fields[getCreaterFieldName(id)] = createMutationType({ model })
-        return fields
-      })
+  // const createWrappedMutationType = function createWrappedMutationType ({ model }) {
+  //   return new GraphQLInputObjectType({
+  //     name: getTypeName(model),
+  //     description: model.description,
+  //     fields: extend({
+  //       object: createMutationType({ model }),
+  //     }, metadataTypes),
+  //     // args: () => extend({
+  //     //   object: createMutationType({ model }),
+  //     // }, metadataArgs)
+  //   })
+  // }
 
-      return fields
-    }
-  })
+  // const MutationType = new GraphQLObjectType({
+  //   name: 'Mutation',
+  //   fields: () => {
+  //     const fields = {}
+  //     Object.keys(models).forEach(id => {
+  //       const model = models[id]
+  //       fields[getCreaterFieldName(id)] = createWrappedMutationType({ model })
+  //       return fields
+  //     })
+
+  //     return fields
+  //   }
+  // })
 
   const schemas = {}
   Object.keys(models).forEach(id => {
@@ -430,21 +449,6 @@ function createSchema ({ resolvers, objects, models }) {
   function _getRefType ({ propertyName, property, model, isInput }) {
     const ref = getRef(property)
     const range = models[ref]
-    // if (isInlinedProperty({ property, model, models })) {
-    //   debug(`TODO: schema for inlined property ${model.id}.${propertyName}`)
-    //   if (ref) {
-    //     if (isInput) {
-    //       return { type: ResourceStubType.input }
-    //     }
-
-    //     return {
-    //       type: getMetadataWrappedType({ model: range })
-    //     }
-    //   }
-
-    //   return { type: GraphQLJSON }
-    // }
-
     if (!range || isBadEnumModel(range)) {
       return { type: GraphQLJSON }
     }
@@ -467,12 +471,14 @@ function createSchema ({ resolvers, objects, models }) {
       return { type: GraphQLJSON }
     }
 
-    const ret = {
-      type: getMetadataWrappedType({ model: range }),
+    if (isInlinedProperty({ models, property })) {
+      return {
+        type: getType({ model: range })
+      }
     }
 
-    if (isInlinedProperty({ models, property })) {
-      return ret
+    const ret = {
+      type: getMetadataWrappedType({ model: range }),
     }
 
     if (property.type === 'array') {
@@ -497,7 +503,7 @@ function createSchema ({ resolvers, objects, models }) {
   return {
     schema: new GraphQLSchema({
       query: QueryType,
-      mutation: MutationType,
+      // mutation: MutationType,
       types: getValues(TYPES)
     }),
     schemas
@@ -506,4 +512,11 @@ function createSchema ({ resolvers, objects, models }) {
 
 function cachifyByModel (fn, cache={}) {
   return cachify(fn, ({ model }) => model.id, cache)
+}
+
+function isComplexProperty ({ type, range }) {
+  return type === 'object' ||
+    type === 'array' ||
+    type === 'enum' ||
+    range === 'json'
 }

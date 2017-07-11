@@ -13,16 +13,16 @@ dynogels.AWS.config.update({
 })
 
 const modelsArray = require('@tradle/models').models.concat(require('@tradle/custom-models'))
-const { extend, shallowClone, normalizeModels, getMetadataProps, getDataProps } = require('./utils')
-const Prefixer = require('./prefixer')
+const { extend, shallowClone, normalizeModels } = require('./utils')
+// const Prefixer = require('./prefixer')
 const models = normalizeModels(modelsArray.reduce((map, model) => {
   map[model.id] = model
   return map
 }, {}))
 
 const { createSchema } = require('./schemas')
-const { getTables } = require('./backend')
-const createResolvers = require('./resolvers')
+const Backend = require('./backend')
+// const createResolvers = require('./resolvers')
 const objects = {
   _cache: {},
   getObjectByLink: co(function* (link) {
@@ -37,26 +37,38 @@ const objects = {
   })
 }
 
-function inflate (fixture) {
-  const metadata = getMetadataProps(fixture)
-  const data = getDataProps(fixture)
-  const inflated = Prefixer.unprefixMetadata(metadata)
-  inflated.object = Prefixer.unprefixData(data)
-  return inflated
-}
+// function inflate (fixture) {
+//   const metadata = getMetadataProps(fixture)
+//   const data = getDataProps(fixture)
+//   const inflated = Prefixer.unprefixMetadata(metadata)
+//   inflated.object = Prefixer.unprefixData(data)
+//   return inflated
+// }
 
 const port = 4000
 const time = String(1499486259331)
-const tables = getTables({ models, objects })
-const resolvers = createResolvers({ tables, models, objects })
+// const tables = getTables({ models, objects })
+// const resolvers = createResolvers({ tables, models, objects })
+const backend = new Backend({
+  hashKey: 'link',
+  prefix: {
+    metadata: 'm',
+    data: 'd'
+  },
+  models,
+  objects
+})
+
+const { tables, resolvers } = backend
 const fixtures = require('./fixtures')
 co(function* () {
   for (const fixture of fixtures) {
-    const table = tables[fixture._t]
+    const table = tables[fixture.object._t]
     // const flat = shallowClone(fixture, fixture.object)
     // delete flat.object
     // yield table.create(flat)
-    objects._cache[fixture[Prefixer.metadata('link')]] = inflate(fixture)
+    // objects._cache[fixture[Prefixer.metadata('link')]] = inflate(fixture)
+    objects._cache[fixture.link] = fixture
     yield table.create(fixture)
   }
 
@@ -95,7 +107,12 @@ co(function* () {
   // }, { overwrite: false })
 })().catch(console.error)
 
-const { schema, schemas } = createSchema({ resolvers, models, tables })
+const { schema, schemas } = createSchema({
+  resolvers,
+  models,
+  tables,
+  primaryKeys: ['link']
+})
 
 const app = express()
 const GRAPHQL_PATH = '/graphql'

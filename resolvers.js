@@ -6,9 +6,8 @@ const {
 } = require('./utils')
 
 const { filterResults } = require('./compare')
-const { hashKey } = require('./constants')
 
-module.exports = function createResolvers ({ tables, models, objects }) {
+module.exports = function createResolvers ({ tables, models, objects, hashKey }) {
   const runQuery = co(function* ({ model, key, props }) {
     let query = tables[model.id].query(key.value)
     if (key.index) {
