@@ -1,5 +1,4 @@
 const pick = require('object.pick')
-const { Kind } = require('graphql/language')
 const {
   GraphQLObjectType,
   GraphQLInputObjectType,
@@ -19,9 +18,6 @@ function parseLiteral (ast) {
 
   return pick(stub, ['id', 'title'])
 }
-
-// example:
-// http://dev.apollodata.com/tools/graphql-tools/scalars.html#Date-as-a-scalar
 
 const fields = {
   id: {
@@ -52,5 +48,6 @@ const ResourceStubOutputType = new GraphQLObjectType({
 
 module.exports = {
   input: ResourceStubInputType,
-  output: ResourceStubOutputType
+  output: ResourceStubOutputType,
+  propertyNames: ['id', 'title']
 }

@@ -101,22 +101,22 @@ const client = createClient({
   endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
 })
 
-// setTimeout(function () {
-//   const gql = require('graphql-tag')
-//   client.query({
-//       query: gql(`
-//         query {
-//           rl_tradle_Verification {
-//             link,
-//             document
-//           }
-//         }
-//       `),
-//     })
-//     .then(data => console.log(prettify(data)))
-//     .catch(error => console.error(error));
-// }, 1000)
+setTimeout(function () {
+  const gql = require('graphql-tag')
+  client.query({
+      query: gql(`
+        query {
+          rl_tradle_Verification {
+            _link,
+            document
+          }
+        }
+      `),
+    })
+    .then(data => console.log(prettify(data)))
+    .catch(error => console.error(error));
+}, 1000)
 
-// function prettify (obj) {
-//   return JSON.stringify(obj, null, 2)
-// }
+function prettify (obj) {
+  return JSON.stringify(obj, null, 2)
+}

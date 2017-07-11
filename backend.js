@@ -1,4 +1,4 @@
-// const debug = require('debug')('tradle:dynogels-mapper')
+const debug = require('debug')('tradle:dynogels-mapper')
 const Joi = require('joi')
 const dynogels = require('dynogels')
 const createResolvers = require('./resolvers')
@@ -7,7 +7,6 @@ const {
   co,
   clone,
   extend,
-  deepEqual,
   promisify,
   // getMetadataProps,
   getIndexes,
@@ -70,16 +69,11 @@ const ensureTables = co(function* (tables) {
 // }
 
 function inflate (object) {
-  return object// Prefixer.replace(object, '__', '$')
+  return object
 }
 
 function deflate (object) {
-  return object //Prefixer.replace(object, '$', '__')
-  // return extend(
-  //   Prefixer.metadata(getMetadataProps(object)),
-  //   omit(object, metadataProps)
-  //   // Prefixer.data(object.object)
-  // )
+  return object
 }
 
 function toDynogelsSchema ({ model, models }) {
@@ -88,25 +82,19 @@ function toDynogelsSchema ({ model, models }) {
     Prefixer.data(toJoi({ model, models }))
   )
 
-  const indexes = clone(getIndexes({ model, models }))
-  // indexes.forEach(index => {
-  //   index.hashKey = Prefixer.metadata(index.hashKey)
-  //   if (index.rangeKey) {
-  //     index.rangeKey = Prefixer.metadata(index.rangeKey)
-  //   }
-  // })
-
-  return {
+  const spec = {
     hashKey,
-    // hashKey: Prefixer.metadata(hashKey),
-    // rangeKey: rangeKey && Prefixer.metadata(rangeKey),
     tableName: getTableName(model),
     timestamps: true,
     createdAt: false,
     updatedAt: Prefixer.metadata('dateUpdated'),
     schema,
-    indexes
+    indexes: getIndexes({ model, models })
   }
+
+  if (rangeKey) spec.rangeKey = rangeKey
+
+  return spec
 }
 
 function getTable ({ model, models, objects }) {
@@ -120,28 +108,14 @@ function wrapInstance (instance) {
     include: ['save', 'update', 'destroy']
   })
 
-  return extend(promisified, {
-    // metadata: prop => instance.get(Prefixer.metadata(prop)),
-    // get: prop => prop ? instance.get(prefixDataProp(prop)) : instance.get(),
-    // set: prop => props => instance.set(Prefixer.data(props)),
-    // toPlainObject: toJSON,
-    toJSON
-  })
-
-  function toJSON () {
-    return inflate(instance.toJSON())
-  }
+  promisified.toJSON = () => inflate(instance.toJSON())
+  return promisified
 }
 
 function wrapTable ({ table, model, objects }) {
   table = promisify(table, {
     include: ['createTable', 'create', 'get', 'update', 'destroy']
   })
-
-  // const create = co(function* (item, options={}) {
-  //   const result = yield table.create(deflate(item), options)
-  //   return wrapInstance(result)
-  // })
 
   const _get = rangeKey
     ? key => table.get(key[hashKey], key[rangeKey])
@@ -152,15 +126,25 @@ function wrapTable ({ table, model, objects }) {
     return result && wrapInstance(result)
   })
 
-  const update = co(function* (item, options) {
-    item = deflate(item)
-    const slim = slimmer.slim({ item, model })
-    const putSlim = table.update(slim, options)
-    const putFat = slim === item ? RESOLVED : objects.putObject(item)
-    // const result = yield table.update(deflate(item), options)
-    const [result] = yield [putSlim, putFat]
-    return wrapInstance(result)
-  })
+  // const create = co(function* (item, options={}) {
+  //   const result = yield table.create(deflate(item), options)
+  //   return wrapInstance(result)
+  // })
+
+  const createWriteMethod = function createWriteMethod (method) {
+    return co(function* (item, options) {
+      item = deflate(item)
+      const slim = slimmer.slim({ item, model })
+      const putSlim = table[method](slim, options)
+      const putFat = slim === item ? RESOLVED : objects.putObject(item)
+      // const result = yield table.update(deflate(item), options)
+      const [result] = yield [putSlim, putFat]
+      return wrapInstance(result)
+    })
+  }
+
+  const create = createWriteMethod('create')
+  const update = createWriteMethod('update')
 
   const destroy = co(function* (key, options) {
     const result = yield table.destroy(deflate(key), options)
@@ -170,12 +154,7 @@ function wrapTable ({ table, model, objects }) {
   const crud = wrapFunctionsWithEnsureTable({
     table,
     model,
-    object: {
-      create: update,
-      get,
-      update,
-      destroy
-    }
+    object: { create, get, update, destroy }
   })
 
   return extend(crud, {

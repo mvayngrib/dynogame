@@ -20,7 +20,7 @@ module.exports = {
   prefix,
   hashKey,
   rangeKey: null,
-  indexes: [
+  defaultIndexes: [
     {
       hashKey: prefix.metadata + 'author',
       rangeKey: prefix.metadata + 'time',

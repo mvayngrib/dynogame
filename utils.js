@@ -8,13 +8,13 @@ const pick = require('object.pick')
 const omit = require('object.omit')
 const { GraphQLNonNull } = require('graphql')
 const constants = require('./constants')
-const Prefixer = require('./prefixer')
-const { TYPE, SIG, SEQ, PREV_TO_SENDER } = constants
+const ResourceStubType = require('./types/resource-stub')
+const { TYPE, SIG, SEQ, PREV_TO_SENDER, defaultIndexes, metadataProperties } = constants
 const STRING_TYPE = {
   type: 'string'
 }
 
-const STUB_PROPS = ['id', 'title']
+// const STUB_PROPS = ['id', 'title']
 const PROTOCOL_PROPS = {
   [TYPE]: STRING_TYPE,
   [SIG]: STRING_TYPE,
@@ -26,8 +26,7 @@ const PROTOCOL_PROPS = {
 
 // const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
-const METADATA_PROP_NAMES = Object.keys(constants.metadataProperties)
-const defaultIndexes = constants.indexes
+const METADATA_PROP_NAMES = Object.keys(metadataProperties)
 
 // const prefixProp = (prop, prefix) => prefix + prop
 // const prefixMetadataProp = prop => prefixProp(prop, prefix.metadata)
@@ -230,8 +229,8 @@ function normalizeModels (models) {
 
 function isResourceStub (props) {
   const keys = Object.keys(props)
-  return keys.length === STUB_PROPS.length &&
-    deepEqual(keys.sort(), STUB_PROPS)
+  return keys.length === ResourceStubType.propertyNames &&
+    deepEqual(keys.sort(), ResourceStubType.propertyNames)
 }
 
 function fromResourceStub (props) {
