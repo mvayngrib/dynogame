@@ -17,8 +17,8 @@ function toJoi ({ model, models }) {
     joiProps[propertyName] = toJoiProp({ propertyName, property, model, models })
   }
 
-  for (let name of required) {
-    joiProps[name] = joiProps[name].required()
+  for (let propertyName of required) {
+    joiProps[propertyName] = joiProps[propertyName].required()
   }
 
   return joiProps

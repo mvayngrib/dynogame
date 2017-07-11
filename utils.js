@@ -7,22 +7,16 @@ const deepEqual = require('deep-equal')
 const pick = require('object.pick')
 const omit = require('object.omit')
 const { GraphQLNonNull } = require('graphql')
-const TYPE = '_t'
-const SIG = '_s'
-const SEQ = '_n'
-const PERMALINK = '_r'
-const PREVLINK = '_p'
-const PREV_TO_SENDER = '_q'
+const constants = require('./constants')
+const Prefixer = require('./prefixer')
+const { TYPE, SIG, SEQ, PREV_TO_SENDER } = constants
 const STRING_TYPE = {
   type: 'string'
 }
 
 const STUB_PROPS = ['id', 'title']
-
 const PROTOCOL_PROPS = {
   [TYPE]: STRING_TYPE,
-  [SIG]: STRING_TYPE,
-  [SEQ]: STRING_TYPE,
   [SIG]: STRING_TYPE,
   [PREV_TO_SENDER]: STRING_TYPE,
   [SEQ]: {
@@ -30,41 +24,27 @@ const PROTOCOL_PROPS = {
   }
 }
 
-const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
+// const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
-const getMetadataProps = object => pick(object, ['link', 'permalink', 'time', 'author'])
-const defaultIndexes = require('./constants').indexes
+const METADATA_PROP_NAMES = Object.keys(constants.metadataProperties)
+const defaultIndexes = constants.indexes
 
-module.exports = {
-  co,
-  promisify,
-  clone,
-  shallowClone,
-  extend,
-  deepEqual,
-  pick,
-  omit,
-  // getNonProtocolProps,
-  isResourceStub,
-  fromResourceStub,
-  isEmailProperty,
-  isInlinedProperty,
-  getProperties,
-  getRequiredProperties,
-  getOnCreateProperties,
-  isRequired,
-  getRef,
-  isInstantiable,
-  getInstantiableModels,
-  cachify,
-  getValues,
-  toNonNull,
-  mapObject,
-  withProtocolProps,
-  normalizeModels,
-  getMetadataProps,
-  getIndexes
-}
+// const prefixProp = (prop, prefix) => prefix + prop
+// const prefixMetadataProp = prop => prefixProp(prop, prefix.metadata)
+// const prefixMetadataProps = props => prefixProps(props, prefix.metadata)
+// const prefixDataProp = prop => prefixProp(prop, prefix.data)
+// const prefixDataProps = props => prefixProps(props, prefix.data)
+// const prefixProps = (props, prefix) => {
+//   const prefixed = {}
+//   for (let prop in props) {
+//     prefixed[prefixProp(prop, prefix)] = props[prop]
+//   }
+
+//   return prefixed
+// }
+
+const getMetadataProps = object => pick(object, METADATA_PROP_NAMES)
+const getDataProps = object => omit(object, METADATA_PROP_NAMES)
 
 function isEmailProperty ({ propertyName, property }) {
   if (property.type === 'string') {
@@ -141,15 +121,14 @@ function isSetOnCreate ({ model, propertyName }) {
   // if (!property.backlink) return true
 }
 
-function cachify (fn, getId) {
-  const byId = {}
+function cachify (fn, getId, cache={}) {
   return function (...args) {
     const id = getId(...args)
-    if (!(id in byId)) {
-      byId[id] = fn.apply(this, args)
+    if (!(id in cache)) {
+      cache[id] = fn.apply(this, args)
     }
 
-    return byId[id]
+    return cache[id]
   }
 }
 
@@ -174,17 +153,17 @@ function mapObject (obj, mapper) {
   return mapped
 }
 
-function filterObject (obj, filter) {
-  const filtered = {}
-  for (let key in obj) {
-    let val = obj[key]
-    if (filter(val)) {
-      filtered[key] = val
-    }
-  }
+// function filterObject (obj, filter) {
+//   const filtered = {}
+//   for (let key in obj) {
+//     let val = obj[key]
+//     if (filter(val)) {
+//       filtered[key] = val
+//     }
+//   }
 
-  return filtered
-}
+//   return filtered
+// }
 
 function withProtocolProps (model) {
   let required = model.required || []
@@ -226,17 +205,28 @@ function unique (strings) {
   return Object.keys(obj)
 }
 
-function hasNonProtocolProps (model) {
-  return !!Object.keys(omit(model.properties, PROTOCOL_PROP_NAMES)).length
-}
+// function hasNonProtocolProps (model) {
+//   return !!Object.keys(omit(model.properties, PROTOCOL_PROP_NAMES)).length
+// }
 
 function normalizeModels (models) {
   // models = filterObject(models, model => {
   //   return !isInstantiable(model) || hasNonProtocolProps(model)
   // })
 
-  return mapObject(models, withProtocolProps)
+  const whole = mapObject(models, withProtocolProps)
+  return whole
+  // return fixEnums(addedProtocol)
 }
+
+// function fixEnums (models) {
+//   for (let id in models) {
+//     let model = models[id]
+//     if (model.subClassOf === 'tradle.Enum' && !model.enum) {
+//       model.enum =
+//     }
+//   }
+// }
 
 function isResourceStub (props) {
   const keys = Object.keys(props)
@@ -260,3 +250,35 @@ function getIndexes ({ model, models }) {
 // function getNonProtocolProps (props) {
 //   return omit(props, Object.keys(PROTOCOL_PROP_NAMES))
 // }
+
+module.exports = {
+  co,
+  promisify,
+  clone,
+  shallowClone,
+  extend,
+  deepEqual,
+  pick,
+  omit,
+  // getNonProtocolProps,
+  isResourceStub,
+  fromResourceStub,
+  isEmailProperty,
+  isInlinedProperty,
+  getProperties,
+  getRequiredProperties,
+  getOnCreateProperties,
+  isRequired,
+  getRef,
+  isInstantiable,
+  getInstantiableModels,
+  cachify,
+  getValues,
+  toNonNull,
+  mapObject,
+  withProtocolProps,
+  normalizeModels,
+  getMetadataProps,
+  getDataProps,
+  getIndexes
+}

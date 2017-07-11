@@ -2,26 +2,32 @@
 const Joi = require('joi')
 const dynogels = require('dynogels')
 const createResolvers = require('./resolvers')
+const Prefixer = require('./prefixer')
 const {
   co,
+  clone,
   extend,
-  pick,
-  omit,
   deepEqual,
   promisify,
-  getMetadataProps,
-  getIndexes
+  // getMetadataProps,
+  getIndexes,
 } = require('./utils')
 
-const constants = require('./constants')
-const { prefix, hashKey, rangeKey } = constants
+const { hashKey, rangeKey } = require('./constants')
 const slimmer = require('./slim')
 const { toJoi } = require('./joi')
 const Errors = require('./errors')
-const Prefixer = require('./prefixer')
 const RESOLVED = Promise.resolve()
-// const METADATA_PREFIX = 'm'
-// const DATA_PREFIX = 'd'
+
+const metadataTypes = Prefixer.metadata({
+  // id: Joi.string(),
+  // title: Joi.string(),
+  link: Joi.string(),
+  permalink: Joi.string(),
+  author: Joi.string(),
+  time: Joi.string(),
+})
+
 // don't prefix for now, disallow _ as first character in model props
 const ensureTablesCache = {}
 const ensureTables = co(function* (tables) {
@@ -43,57 +49,63 @@ const ensureTables = co(function* (tables) {
   }
 })
 
+// function inflate (object) {
+//   // const metadataProps = Object.keys(object).filter(prop => prop.startsWith(METADATA_PREFIX))
+//   // const dataProps = Object.keys(object).filter(prop => prop.startsWith(DATA_PREFIX))
+//   const recovered = {
+//     object: {}
+//   }
+
+//   for (let prop in object) {
+//     if (prop.startsWith(prefix.metadata)) {
+//       recovered[prop.slice(prefix.metadata.length)] = object[prop]
+//     } else if (prop.startsWith(prefix.data)) {
+//       recovered.object[prop.slice(prefix.data.length)] = object[prop]
+//     } else {
+//       throw new Error(`unexpected property ${prop}`)
+//     }
+//   }
+
+//   return recovered
+// }
+
 function inflate (object) {
-  // const metadataProps = Object.keys(object).filter(prop => prop.startsWith(METADATA_PREFIX))
-  // const dataProps = Object.keys(object).filter(prop => prop.startsWith(DATA_PREFIX))
-  const recovered = {
-    object: {}
-  }
-
-  for (let prop in object) {
-    if (prop.startsWith(prefix.metadata)) {
-      recovered[prop.slice(prefix.metadata.length)] = object[prop]
-    } else if (prop.startsWith(prefix.data)) {
-      recovered.object[prop.slice(prefix.data.length)] = object[prop]
-    } else {
-      throw new Error(`unexpected property ${prop}`)
-    }
-  }
-
-  return recovered
+  return object// Prefixer.replace(object, '__', '$')
 }
 
 function deflate (object) {
-  const metadataProps = getMetadataProps(object)
-  return extend(
-    Prefixer.metadataProps(metadataProps),
-    omit(object, metadataProps)
-  )
-
+  return object //Prefixer.replace(object, '$', '__')
   // return extend(
-  //   prefixMetadataProps(getMetadataProps(object)),
-  //   prefixDataProps(object.object)
+  //   Prefixer.metadata(getMetadataProps(object)),
+  //   omit(object, metadataProps)
+  //   // Prefixer.data(object.object)
   // )
 }
 
 function toDynogelsSchema ({ model, models }) {
-  const schema = toJoi({ model, models })
-  schema[Prefixer.metadataProp('time')] = Joi.string()
-  schema[Prefixer.metadataProp('author')] = Joi.string()
-  schema[Prefixer.metadataProp('link')] = Joi.string()
-  schema[Prefixer.metadataProp('permalink')] = Joi.string()
+  const schema = extend(
+    metadataTypes,
+    Prefixer.data(toJoi({ model, models }))
+  )
+
+  const indexes = clone(getIndexes({ model, models }))
+  // indexes.forEach(index => {
+  //   index.hashKey = Prefixer.metadata(index.hashKey)
+  //   if (index.rangeKey) {
+  //     index.rangeKey = Prefixer.metadata(index.rangeKey)
+  //   }
+  // })
+
   return {
-    // metadata prop
-    // hashKey: prefixProp('time', METADATA_PREFIX),
-    // rangeKey: prefixProp('author', METADATA_PREFIX),
-    rangeKey,
     hashKey,
+    // hashKey: Prefixer.metadata(hashKey),
+    // rangeKey: rangeKey && Prefixer.metadata(rangeKey),
     tableName: getTableName(model),
     timestamps: true,
     createdAt: false,
-    updatedAt: Prefixer.metadataProp('dateUpdated'),
+    updatedAt: Prefixer.metadata('dateUpdated'),
     schema,
-    indexes: getIndexes({ model, models })
+    indexes
   }
 }
 
@@ -104,24 +116,21 @@ function getTable ({ model, models, objects }) {
 }
 
 function wrapInstance (instance) {
-  return promisify(instance, {
+  const promisified = promisify(instance, {
     include: ['save', 'update', 'destroy']
   })
 
-  // return {
-  //   metadata: prop => instance.get(prefixMetadataProp(prop)),
-  //   get: prop => prop ? instance.get(prefixDataProp(prop)) : instance.get(),
-  //   set: prop => props => instance.set(prefixDataProps(props)),
-  //   save: promisify(instance.save.bind(instance)),
-  //   update: promisify(instance.update.bind(instance)),
-  //   destroy: promisify(instance.destroy.bind(instance)),
-  //   toPlainObject: toJSON,
-  //   toJSON
-  // }
+  return extend(promisified, {
+    // metadata: prop => instance.get(Prefixer.metadata(prop)),
+    // get: prop => prop ? instance.get(prefixDataProp(prop)) : instance.get(),
+    // set: prop => props => instance.set(Prefixer.data(props)),
+    // toPlainObject: toJSON,
+    toJSON
+  })
 
-  // function toJSON () {
-  //   return inflate(instance.toJSON())
-  // }
+  function toJSON () {
+    return inflate(instance.toJSON())
+  }
 }
 
 function wrapTable ({ table, model, objects }) {
@@ -215,7 +224,16 @@ function wrapWithEnsureTable ({ fn, model, table }) {
       [model.id]: table
     })
 
-    return yield fn.apply(this, args)
+    const result = yield fn.apply(this, args)
+    if (result) {
+      if (result.Item) {
+        result.Item = wrapInstance(result.Item)
+      } else if (result.Items) {
+        result.Items = result.Items.map(item => wrapInstance(item))
+      }
+    }
+
+    return result
   })
 }
 

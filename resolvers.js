@@ -1,12 +1,6 @@
 const debug = require('debug')('tradle:graphql-resolvers')
 const {
   co,
-  extend,
-  pick,
-  omit,
-  deepEqual,
-  promisify,
-  getMetadataProps,
   getRequiredProperties,
   getIndexes
 } = require('./utils')
@@ -38,8 +32,11 @@ module.exports = function createResolvers ({ tables, models, objects }) {
     const { Count, Items } = result
     if (!Count) return []
 
-    const resources = resultsToJson(Items)
-    return filterResults({ model, resources, props })
+    return filterResults({
+      model,
+      results: resultsToJson(Items),
+      props
+    })
   }
 
   const update = co(function* ({ model, props }) {

@@ -38,10 +38,11 @@ const resolvers = createResolvers({ tables, models, objects })
 const fixtures = require('./fixtures')
 co(function* () {
   for (const fixture of fixtures) {
-    const table = tables[fixture.object._t]
-    const flat = shallowClone(fixture, fixture.object)
-    delete flat.object
-    yield table.create(flat)
+    const table = tables[fixture._t]
+    // const flat = shallowClone(fixture, fixture.object)
+    // delete flat.object
+    // yield table.create(flat)
+    yield table.create(fixture)
   }
 
   // const personalInfo = tables['tradle.PersonalInfo']

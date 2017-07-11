@@ -1,23 +1,47 @@
 const { prefix } = require('./constants')
-const prefixProp = (prop, prefix) => prefix + prop
-const prefixMetadataProp = prop => prefixProp(prop, prefix.metadata)
-const prefixMetadataProps = props => prefixProps(props, prefix.metadata)
-const prefixDataProp = prop => prefixProp(prop, prefix.data)
-const prefixDataProps = props => prefixProps(props, prefix.data)
 
 function prefixProps (props, prefix) {
   const prefixed = {}
   for (let prop in props) {
-    prefixed[prefixProp(prop, prefix)] = props[prop]
+    prefixed[prefix + prop] = props[prop]
   }
 
   return prefixed
 }
 
+function unprefixProp (prop, prefix) {
+  return prop.startsWith(prefix)
+    ? prop.slice(prefix.length)
+    : prop
+}
+
+function unprefixProps (props, prefix) {
+  const unprefixed = {}
+  for (let prop in props) {
+    unprefixed[unprefixProp(prop, prefix)] = props[prop]
+  }
+
+  return unprefixed
+}
+
+function prefixSomething (val, prefix) {
+  return typeof val === 'string'
+    ? prefix + val
+    : prefixProps(val, prefix)
+}
+
+function unprefixSomething (val, prefix) {
+  return typeof val === 'string'
+    ? unprefixProp(val, prefix)
+    : unprefixProps(val, prefix)
+}
+
 module.exports = {
-  metadataProp: prefixMetadataProp,
-  metadataProps: prefixMetadataProps,
-  dataProp: prefixDataProp,
-  dataProps: prefixDataProps,
-  props: prefixProps
+  metadata: val => prefixSomething(val, prefix.metadata),
+  data: val => prefixSomething(val, prefix.data),
+  prefix: prefixSomething,
+  unprefix: unprefixSomething,
+  replace: (val, strip, prepend) => {
+    return prefixSomething(unprefixSomething(val, strip), prepend)
+  }
 }
