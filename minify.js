@@ -1,46 +1,52 @@
 const pick = require('object.pick')
-
+const { prefix } = require('./constants')
 const {
   getProperties,
   isRequired,
-  getRef
+  getRef,
+  shallowClone
 } = require('./utils')
 
-module.exports = {
-  slim: getSlimVersion
-}
+module.exports = minify
 
-const SLIM_PREFERENCES = [
+const MINIFY_PREFERENCES = [
   minusPhotos,
   minusBigValues,
   minusOptional,
   minusAll
 ]
 
-function getSlimVersion ({ item, model }) {
-  const all = getProperties(model).filter(prop => prop in item)
-  let chosenProps = all
-  let slim = item
-  for (const filter of SLIM_PREFERENCES) {
-    const size = JSON.stringify(slim).length
-    if (size < 1000) return slim
+function minify ({ item, model }) {
+  let min = shallowClone(item)
+  let diff = {}
 
-    const prev = chosenProps
-    chosenProps = chosenProps.filter(propertyName => {
-      return filter({
+  for (const filter of MINIFY_PREFERENCES) {
+    const size = JSON.stringify(min).length
+    if (size < 1000) return { min, diff }
+
+    let slimmed
+    for (let propertyName in min) {
+      if (propertyName.startsWith(prefix.metadata)) {
+        continue
+      }
+
+      let keep = filter({
         model,
         propertyName,
         property: model.properties[propertyName],
         value: item[propertyName]
       })
-    })
 
-    if (prev.length < chosenProps.length) {
-      slim = pick(slim, chosenProps)
+      if (!keep) {
+        diff[propertyName] = item[propertyName]
+        delete min[propertyName]
+        slimmed = true
+        min._min = true
+      }
     }
   }
 
-  return item
+  return { min, diff }
 }
 
 function minusPhotos ({ property }) {

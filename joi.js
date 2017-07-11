@@ -17,9 +17,10 @@ function toJoi ({ model, models }) {
     joiProps[propertyName] = toJoiProp({ propertyName, property, model, models })
   }
 
-  for (let propertyName of required) {
-    joiProps[propertyName] = joiProps[propertyName].required()
-  }
+  // leave validation to graphql
+  // for (let propertyName of required) {
+  //   joiProps[propertyName] = joiProps[propertyName].required()
+  // }
 
   return joiProps
 }

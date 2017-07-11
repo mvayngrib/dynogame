@@ -13,7 +13,8 @@ dynogels.AWS.config.update({
 })
 
 const modelsArray = require('@tradle/models').models.concat(require('@tradle/custom-models'))
-const { shallowClone, normalizeModels } = require('./utils')
+const { extend, shallowClone, normalizeModels, getMetadataProps, getDataProps } = require('./utils')
+const Prefixer = require('./prefixer')
 const models = normalizeModels(modelsArray.reduce((map, model) => {
   map[model.id] = model
   return map
@@ -23,12 +24,25 @@ const { createSchema } = require('./schemas')
 const { getTables } = require('./backend')
 const createResolvers = require('./resolvers')
 const objects = {
-  putObject: function () {
-    throw new Error('putObject not available in this environment')
-  },
-  getObjectByLink: function () {
-    throw new Error('getObjectByLink not available in this environment')
-  }
+  _cache: {},
+  getObjectByLink: co(function* (link) {
+    if (link in objects._cache) {
+      return objects._cache[link]
+    }
+
+    throw new Error('not found')
+
+    // debugger
+    // throw new Error('getObjectByLink not available in this environment')
+  })
+}
+
+function inflate (fixture) {
+  const metadata = getMetadataProps(fixture)
+  const data = getDataProps(fixture)
+  const inflated = Prefixer.unprefixMetadata(metadata)
+  inflated.object = Prefixer.unprefixData(data)
+  return inflated
 }
 
 const port = 4000
@@ -42,6 +56,7 @@ co(function* () {
     // const flat = shallowClone(fixture, fixture.object)
     // delete flat.object
     // yield table.create(flat)
+    objects._cache[fixture[Prefixer.metadata('link')]] = inflate(fixture)
     yield table.create(fixture)
   }
 
@@ -101,22 +116,24 @@ const client = createClient({
   endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
 })
 
-setTimeout(function () {
-  const gql = require('graphql-tag')
-  client.query({
-      query: gql(`
-        query {
-          rl_tradle_Verification {
-            _link,
-            document
-          }
-        }
-      `),
-    })
-    .then(data => console.log(prettify(data)))
-    .catch(error => console.error(error));
-}, 1000)
+// setTimeout(function () {
+//   const gql = require('graphql-tag')
+//   client.query({
+//       query: gql(`
+//         query {
+//           rl_tradle_PhotoID {
+//             _link,
+//             scan {
+//               url
+//             }
+//           }
+//         }
+//       `),
+//     })
+//     .then(data => console.log(prettify(data)))
+//     .catch(error => console.error(error));
+// }, 1000)
 
-function prettify (obj) {
-  return JSON.stringify(obj, null, 2)
-}
+// function prettify (obj) {
+//   return JSON.stringify(obj, null, 2)
+// }

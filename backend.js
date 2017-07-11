@@ -13,7 +13,7 @@ const {
 } = require('./utils')
 
 const { hashKey, rangeKey } = require('./constants')
-const slimmer = require('./slim')
+const minify = require('./minify')
 const { toJoi } = require('./joi')
 const Errors = require('./errors')
 const RESOLVED = Promise.resolve()
@@ -25,6 +25,7 @@ const metadataTypes = Prefixer.metadata({
   permalink: Joi.string(),
   author: Joi.string(),
   time: Joi.string(),
+  min: Joi.boolean()
 })
 
 // don't prefix for now, disallow _ as first character in model props
@@ -117,12 +118,13 @@ function wrapTable ({ table, model, objects }) {
     include: ['createTable', 'create', 'get', 'update', 'destroy']
   })
 
-  const _get = rangeKey
-    ? key => table.get(key[hashKey], key[rangeKey])
-    : key => table.get(key[hashKey])
+  // const _get = rangeKey
+  //   ? key => table.get(key[hashKey], key[rangeKey])
+  //   : key => table.get(key[hashKey])
 
   const get = co(function* (key) {
-    const result = yield _get(key)
+    // const result = yield _get(key)
+    const result = yield objects.getObjectByLink(key)
     return result && wrapInstance(result)
   })
 
@@ -134,11 +136,9 @@ function wrapTable ({ table, model, objects }) {
   const createWriteMethod = function createWriteMethod (method) {
     return co(function* (item, options) {
       item = deflate(item)
-      const slim = slimmer.slim({ item, model })
-      const putSlim = table[method](slim, options)
-      const putFat = slim === item ? RESOLVED : objects.putObject(item)
-      // const result = yield table.update(deflate(item), options)
-      const [result] = yield [putSlim, putFat]
+      const { min, diff } = minify({ item, model })
+      const result = yield table[method](min, options)
+      result.set(diff)
       return wrapInstance(result)
     })
   }
@@ -151,44 +151,39 @@ function wrapTable ({ table, model, objects }) {
     return wrapInstance(result)
   })
 
-  const crud = wrapFunctionsWithEnsureTable({
-    table,
-    model,
-    object: { create, get, update, destroy }
-  })
+  const opts = { objects, table, model }
+  const crud = wrapDBOperations({
+    create,
+    get,
+    update,
+    destroy
+  }, opts)
+
+  function scan (...args) {
+    const op = table.scan(...args)
+    op.exec = wrapDBOperation(promisify(op.exec.bind(op)), opts)
+    return op
+  }
+
+  function query (...args) {
+    const op = table.query(...args)
+    op.exec = wrapDBOperation(promisify(op.exec.bind(op)), opts)
+    return op
+  }
 
   return extend(crud, {
     createTable: () => table.createTable(),
-    query: (...args) => wrapOperation({
-      table,
-      model,
-      op: table.query(...args)
-    }),
-    scan: (...args) => wrapOperation({
-      table,
-      model,
-      op: table.scan(...args)
-    })
+    query,
+    scan
   })
 }
 
-// TODO: wrap, instead of overwrite
-function wrapOperation ({ table, model, op }) {
-  op.exec = wrapWithEnsureTable({
-    fn: promisify(op.exec.bind(op)),
-    table,
-    model
-  })
-
-  return op
-}
-
-function wrapFunctionsWithEnsureTable ({ object, model, table }) {
+function wrapDBOperations (target, opts) {
   const ensured = {}
-  Object.keys(object).forEach(key => {
-    const val = object[key]
+  Object.keys(target).forEach(key => {
+    const val = target[key]
     if (typeof val === 'function') {
-      ensured[key] = wrapWithEnsureTable({ fn: val, model, table })
+      ensured[key] = wrapDBOperation(val, opts)
     } else {
       ensured[key] = val
     }
@@ -197,19 +192,32 @@ function wrapFunctionsWithEnsureTable ({ object, model, table }) {
   return ensured
 }
 
-function wrapWithEnsureTable ({ fn, model, table }) {
+const maybeInflate = co(function* ({ objects, instance }) {
+  if (instance.get(Prefixer.metadata('min'))) {
+    const link = instance.get(Prefixer.metadata('link'))
+    const full = yield objects.getObjectByLink(link)
+    instance.set(full.object)
+  }
+
+  return instance
+})
+
+function wrapDBOperation (fn, { objects, model, table }) {
   return co(function* (...args) {
     yield ensureTables({
       [model.id]: table
     })
 
     const result = yield fn.apply(this, args)
-    if (result) {
-      if (result.Item) {
-        result.Item = wrapInstance(result.Item)
-      } else if (result.Items) {
-        result.Items = result.Items.map(item => wrapInstance(item))
-      }
+    if (!result) return result
+
+    let { Item, Items } = result
+    if (Item) {
+      yield maybeInflate({ objects, instance: Item })
+      result.Item = wrapInstance(Item)
+    } else if (Items) {
+      yield Promise.all(Items.map(instance => maybeInflate({ objects, instance })))
+      result.Items = Items.map(wrapInstance)
     }
 
     return result

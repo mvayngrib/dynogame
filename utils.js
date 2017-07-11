@@ -26,7 +26,8 @@ const PROTOCOL_PROPS = {
 
 // const PROTOCOL_PROP_NAMES = Object.keys(PROTOCOL_PROPS)
 const REQUIRED_PROTOCOL_PROPS = [TYPE, SIG]
-const METADATA_PROP_NAMES = Object.keys(metadataProperties)
+const METADATA_PROP_NAMES = getValues(metadataProperties)
+// const METADATA_PROP_NAMES = Object.keys(metadataProperties)
 
 // const prefixProp = (prop, prefix) => prefix + prop
 // const prefixMetadataProp = prop => prefixProp(prop, prefix.metadata)

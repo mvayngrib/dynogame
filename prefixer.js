@@ -41,6 +41,8 @@ module.exports = {
   data: val => prefixSomething(val, prefix.data),
   prefix: prefixSomething,
   unprefix: unprefixSomething,
+  unprefixMetadata: val => unprefixSomething(val, prefix.metadata),
+  unprefixData: val => unprefixSomething(val, prefix.data),
   replace: (val, strip, prepend) => {
     return prefixSomething(unprefixSomething(val, strip), prepend)
   }

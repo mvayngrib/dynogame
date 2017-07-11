@@ -23,6 +23,7 @@ const {
 
 const {
   isResourceStub,
+  isInlinedProperty,
   fromResourceStub,
   getInstantiableModels,
   isInstantiable,
@@ -467,14 +468,21 @@ function createSchema ({ resolvers, objects, models }) {
       return { type: GraphQLJSON }
     }
 
-    const resolve = property.type === 'array'
-      ? getBacklinkResolver({ model: range })
-      : getLinkResolver({ model: range })
-
-    return {
+    const ret = {
       type: getMetadataWrappedType({ model: range }),
-      resolve
     }
+
+    if (isInlinedProperty({ models, property })) {
+      return ret
+    }
+
+    if (property.type === 'array') {
+      ret.resolve = getBacklinkResolver({ model: range })
+    } else {
+      ret.resolve = getLinkResolver({ model: range })
+    }
+
+    return ret
   }
 
   const InterfaceType = new GraphQLInterfaceType({

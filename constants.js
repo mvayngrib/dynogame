@@ -1,4 +1,5 @@
 const prefix = {
+  // metadata: '_meta_',
   metadata: '_',
   data: ''
 }
@@ -10,7 +11,8 @@ const metadataProperties = [
   'time',
   'author',
   'id',
-  'title'
+  'title',
+  'min'
 ].reduce((obj, prop) => {
   obj[prop] = prefix.metadata + prop
   return obj
