@@ -1,6 +1,6 @@
 const prefix = {
-  // metadata: '_meta_',
-  metadata: '_',
+  metadata: '_meta_',
+  // metadata: '_',
   data: ''
 }
 

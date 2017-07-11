@@ -167,10 +167,9 @@ function createSchema ({ resolvers, objects, models }) {
         model,
         source,
         args: {
-          [backlink]: source._link
+          [backlink]: source[Prefixer.metadata('link')]
         }
       })
-      // return Promise.all(stubs.map(stub => getByStub({ model, stub })))
     }
   })
 

@@ -101,6 +101,7 @@ module.exports = function createResolvers ({ tables, models, objects }) {
 }
 
 function resultsToJson (items) {
+  // return items
   if (Array.isArray(items)) {
     return items.map(item => {
       return item.toJSON ? item.toJSON() : item

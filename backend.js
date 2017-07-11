@@ -104,33 +104,37 @@ function getTable ({ model, models, objects }) {
   return wrapTable({ table, model, objects })
 }
 
-function wrapInstance (instance) {
-  const promisified = promisify(instance, {
-    include: ['save', 'update', 'destroy']
-  })
-
-  promisified.toJSON = () => inflate(instance.toJSON())
-  return promisified
+function instanceToJSON (instance) {
+  return inflate(instance.toJSON())
 }
+
+// function wrapInstance (instance) {
+//   const promisified = promisify(instance, {
+//     include: ['save', 'update', 'destroy']
+//   })
+
+//   promisified.toJSON = () => inflate(instance.toJSON())
+//   return promisified
+// }
 
 function wrapTable ({ table, model, objects }) {
   table = promisify(table, {
     include: ['createTable', 'create', 'get', 'update', 'destroy']
   })
 
-  // const _get = rangeKey
-  //   ? key => table.get(key[hashKey], key[rangeKey])
-  //   : key => table.get(key[hashKey])
+  const getMin = rangeKey
+    ? key => table.get(key[hashKey], key[rangeKey])
+    : key => table.get(key[hashKey])
 
   const get = co(function* (key) {
-    // const result = yield _get(key)
-    const result = yield objects.getObjectByLink(key)
-    return result && wrapInstance(result)
+    const instance = yield getMin(key)
+    yield maybeInflate({ objects, instance })
+    return instanceToJSON(instance)
   })
 
   // const create = co(function* (item, options={}) {
   //   const result = yield table.create(deflate(item), options)
-  //   return wrapInstance(result)
+  //   return instanceToJSON(result)
   // })
 
   const createWriteMethod = function createWriteMethod (method) {
@@ -139,7 +143,7 @@ function wrapTable ({ table, model, objects }) {
       const { min, diff } = minify({ item, model })
       const result = yield table[method](min, options)
       result.set(diff)
-      return wrapInstance(result)
+      return instanceToJSON(result)
     })
   }
 
@@ -148,7 +152,7 @@ function wrapTable ({ table, model, objects }) {
 
   const destroy = co(function* (key, options) {
     const result = yield table.destroy(deflate(key), options)
-    return wrapInstance(result)
+    return instanceToJSON(result)
   })
 
   const opts = { objects, table, model }
@@ -214,10 +218,10 @@ function wrapDBOperation (fn, { objects, model, table }) {
     let { Item, Items } = result
     if (Item) {
       yield maybeInflate({ objects, instance: Item })
-      result.Item = wrapInstance(Item)
+      result.Item = instanceToJSON(Item)
     } else if (Items) {
       yield Promise.all(Items.map(instance => maybeInflate({ objects, instance })))
-      result.Items = Items.map(wrapInstance)
+      result.Items = Items.map(instanceToJSON)
     }
 
     return result

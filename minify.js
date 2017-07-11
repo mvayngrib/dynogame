@@ -7,6 +7,8 @@ const {
   shallowClone
 } = require('./utils')
 
+const Prefixer = require('./prefixer')
+
 module.exports = minify
 
 const MINIFY_PREFERENCES = [
@@ -41,7 +43,7 @@ function minify ({ item, model }) {
         diff[propertyName] = item[propertyName]
         delete min[propertyName]
         slimmed = true
-        min._min = true
+        min[Prefixer.metadata('min')] = true
       }
     }
   }
