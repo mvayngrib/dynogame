@@ -7,7 +7,7 @@ const {
 
 const { filterResults } = require('./compare')
 
-module.exports = function createResolvers ({ tables, models, objects, hashKey }) {
+module.exports = function createResolvers ({ tables, objects, models, primaryKey }) {
   const runQuery = co(function* ({ model, key, props }) {
     let query = tables[model.id].query(key.value)
     if (key.index) {
@@ -72,9 +72,9 @@ module.exports = function createResolvers ({ tables, models, objects, hashKey })
   })
 
   function getQueryBy ({ model, props }) {
-    if (hashKey in props) {
+    if (primaryKey in props) {
       return {
-        value: props[hashKey],
+        value: props[primaryKey],
         // rangeKey: props[rangeKey]
       }
     }

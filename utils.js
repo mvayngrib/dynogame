@@ -263,6 +263,25 @@ function isHeaderProperty (propertyName) {
   return propertyName in BaseObjectModel.properties
 }
 
+function isComplexProperty ({ type, range }) {
+  return type === 'object' ||
+    type === 'array' ||
+    type === 'enum' ||
+    range === 'json'
+}
+
+function isBadEnumModel (model) {
+  return model.subClassOf === 'tradle.Enum' && !Array.isArray(model.enum)
+}
+
+function isGoodEnumModel (model) {
+  return model.subClassOf === 'tradle.Enum' && Array.isArray(model.enum)
+}
+
+function isNullableProperty (property) {
+  return !isComplexProperty(property.type)
+}
+
 module.exports = {
   co,
   promisify,
@@ -293,5 +312,9 @@ module.exports = {
   // getMetadataProps,
   // getDataProps,
   getIndexes,
-  isHeaderProperty
+  isHeaderProperty,
+  isComplexProperty,
+  isNullableProperty,
+  isGoodEnumModel,
+  isBadEnumModel
 }

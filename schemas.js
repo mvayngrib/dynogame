@@ -25,6 +25,9 @@ const {
 const {
   isResourceStub,
   isInlinedProperty,
+  isNullableProperty,
+  isGoodEnumModel,
+  isBadEnumModel,
   fromResourceStub,
   getInstantiableModels,
   isInstantiable,
@@ -47,6 +50,7 @@ const { TYPE, hashKey } = constants
 const primaryKeys = [hashKey]
 const StringWrapper = { type: GraphQLString }
 const TimestampType = require('./types/timestamp')
+// TODO: use getFields for this
 const metadataTypes = {
   _link: StringWrapper,
   _permalink: StringWrapper,
@@ -258,13 +262,12 @@ function createSchema ({ resolvers, objects, models }) {
       name: getTypeName({ model, isInput }),
       description: model.description,
       // interfaces: model.id === BaseObjectModel.id ? [] : [getBaseObjectType()],
-      fields: () => getFields({ model, isInput })
+      fields: () => getFieldsOrArgs({ model, isInput })
     })
   })
 
-  function getFields ({ model, isInput }) {
+  function getFieldsOrArgs ({ model, isInput }) {
     const required = isInput ? [] : getRequiredProperties(model)
-    if (!required) debugger
     const { properties } = model
     const propertyNames = getProperties(model)
     const fields = {} //shallowClone(metadataTypes)
@@ -372,7 +375,7 @@ function createSchema ({ resolvers, objects, models }) {
         const type = getType({ model })
         fields[getListerFieldName(id)] = {
           type: new GraphQLList(type),
-          args: getFields({ model, isInput: true }),//  getType({ model, isInput: true }),
+          args: getFieldsOrArgs({ model, isInput: true }),//  getType({ model, isInput: true }),
           resolve: getLister({ model })
         }
 
@@ -475,16 +478,6 @@ function createSchema ({ resolvers, objects, models }) {
     return ret
   }
 
-  // const InterfaceType = new GraphQLInterfaceType({
-  //   name: 'Interface',
-  //   fields: () => extend({
-  //     object: IDENTITY_FN
-  //   }, metadataTypes),
-  //   resolveType: function () {
-  //     debugger
-  //   }
-  // });
-
   return {
     schema: new GraphQLSchema({
       query: QueryType,
@@ -503,25 +496,6 @@ function cachifyByModelAndInput (fn, cache={}) {
   return cachify(fn, ({ model, isInput }) => {
     return model.id + (isInput ? 'i' : 'o')
   }, cache)
-}
-
-function isComplexProperty ({ type, range }) {
-  return type === 'object' ||
-    type === 'array' ||
-    type === 'enum' ||
-    range === 'json'
-}
-
-function isBadEnumModel (model) {
-  return model.subClassOf === 'tradle.Enum' && !Array.isArray(model.enum)
-}
-
-function isGoodEnumModel (model) {
-  return model.subClassOf === 'tradle.Enum' && Array.isArray(model.enum)
-}
-
-function isNullableProperty (property) {
-  return !isComplexProperty(property.type)
 }
 
 module.exports = {

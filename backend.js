@@ -44,7 +44,7 @@ function Backend ({
     tables: this.tables,
     models,
     objects,
-    hashKey
+    primaryKey: hashKey
   })
 }
 
