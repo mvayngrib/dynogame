@@ -15,7 +15,7 @@ const MINIFY_PREFERENCES = [
   minusAll
 ]
 
-function minify ({ item, model, prefix }) {
+function minify ({ item, model }) {
   let min = shallowClone(item)
   let diff = {}
   let isMinified
@@ -26,7 +26,7 @@ function minify ({ item, model, prefix }) {
 
     let slimmed
     for (let propertyName in min) {
-      if (propertyName.startsWith(prefix.metadata)) {
+      if (propertyName.startsWith('_')) {
         continue
       }
 

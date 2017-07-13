@@ -14,7 +14,6 @@ dynogels.AWS.config.update({
 
 const modelsArray = require('@tradle/models').models.concat(require('@tradle/custom-models'))
 const { extend, shallowClone, normalizeModels } = require('./utils')
-// const Prefixer = require('./prefixer')
 const models = normalizeModels(modelsArray.reduce((map, model) => {
   map[model.id] = model
   return map
@@ -50,7 +49,7 @@ const time = String(1499486259331)
 // const tables = getTables({ models, objects })
 // const resolvers = createResolvers({ tables, models, objects })
 const backend = new Backend({
-  hashKey: 'link',
+  hashKey: '_link',
   prefix: {
     metadata: 'm',
     data: 'd'
@@ -62,13 +61,15 @@ const backend = new Backend({
 const { tables, resolvers } = backend
 const fixtures = require('./fixtures')
 co(function* () {
+  let i = 0
   for (const fixture of fixtures) {
-    const table = tables[fixture.object._t]
+    const table = tables[fixture._t]
+    fixture._time = time + (i++)
     // const flat = shallowClone(fixture, fixture.object)
     // delete flat.object
     // yield table.create(flat)
     // objects._cache[fixture[Prefixer.metadata('link')]] = inflate(fixture)
-    objects._cache[fixture.link] = fixture
+    objects._cache[fixture._link] = fixture
     yield table.create(fixture)
   }
 

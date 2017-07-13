@@ -1,43 +1,20 @@
-// const prefix = {
-//   metadata: 'm',
-//   data: 'd'
-// }
-
-// const hashKey = 'link'
-// const metadataProperties = [
-//   'link',
-//   'permalink',
-//   'time',
-//   'author',
-//   'id',
-//   'title',
-//   'min'
-// ]
-// .reduce((obj, prop) => {
-//   obj[prop] = prop
-//   return obj
-// }, {})
 
 module.exports = {
-  // prefix,
-  // hashKey,
-  rangeKey: null,
+  hashKey: '_link',
   defaultIndexes: [
     {
-      hashKey: 'author',
-      rangeKey: 'time',
+      hashKey: '_author',
+      rangeKey: '_time',
       name: 'AuthorAndDateIndex',
       type: 'global'
     },
     {
-      hashKey: 'permalink',
-      rangeKey: 'time',
+      hashKey: '_permalink',
+      rangeKey: '_time',
       name: 'PermalinkAndDateIndex',
       type: 'global'
     }
   ],
-  // primaryKeyProperties: [hashKey],
-  // metadataProperties,
   TYPE: '_t',
   SIG: '_s',
   SEQ: '_n',

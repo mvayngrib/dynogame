@@ -2,8 +2,8 @@
 const Joi = require('joi')
 const dynogels = require('dynogels')
 const bindAll = require('bindall')
+const typeforce = require('typeforce')
 const createResolvers = require('./resolvers')
-const createPrefixer = require('./prefixer')
 const {
   co,
   extend,
@@ -15,35 +15,26 @@ const {
 
 const minify = require('./minify')
 const { toJoi } = require('./joi')
+const constants = require('./constants')
+const BaseObjectModel = require('./object-model')
+const metadataTypes = toJoi({
+  model: BaseObjectModel
+})
+
 const RESOLVED = Promise.resolve()
 
 module.exports = Backend
 
 function Backend ({
-  hashKey='link',
+  hashKey='_link',
   rangeKey=null,
-  prefix,
   models,
   objects
 }) {
   bindAll(this)
 
-  this.prefix = prefix
-  this.prefixMetadata = createPrefixer(prefix.metadata).prefix
-  this.prefixData = createPrefixer(prefix.data).prefix
-  this.metadataTypes = this.prefixMetadata({
-    // id: Joi.string(),
-    // title: Joi.string(),
-    link: Joi.string(),
-    permalink: Joi.string(),
-    author: Joi.string(),
-    time: Joi.string(),
-    min: Joi.boolean()
-  })
-
-  this.hashKey = this.prefixMetadata(hashKey)
-  this.rangeKey = rangeKey && this.prefixMetadata(rangeKey)
-
+  this.hashKey = hashKey
+  this.rangeKey = rangeKey
   this.models = models
   this.objects = objects
   // don't prefix for now, disallow _ as first character in model props
@@ -77,60 +68,26 @@ Backend.prototype._ensureTablesExist = co(function* (ids) {
   }
 })
 
-Backend.prototype.inflate = function inflate (object) {
-  const { prefix } = this
-  const recovered = {
-    object: {}
-  }
-
-  for (let prop in object) {
-    if (prop.startsWith(prefix.metadata)) {
-      recovered[prop.slice(prefix.metadata.length)] = object[prop]
-    } else if (prop.startsWith(prefix.data)) {
-      recovered.object[prop.slice(prefix.data.length)] = object[prop]
-    } else {
-      throw new Error(`unexpected property ${prop}`)
-    }
-  }
-
-  return recovered
-}
-
-Backend.prototype.deflate = function deflate (object) {
-  return extend(
-    this.prefixMetadata(omit(object, 'object')),
-    this.prefixData(object.object)
-  )
-}
-
 Backend.prototype._toDynogelsSchema = function _toDynogelsSchema ({ model }) {
-  const { models } = this
+  const { models, hashKey, rangeKey } = this
   const schema = extend(
-    this.metadataTypes,
-    this.prefixData(toJoi({ model, models }))
+    toJoi({ model, models }),
+    metadataTypes
   )
 
-  const spec = {
-    hashKey: this.hashKey,
+  const tableDef = {
+    hashKey,
     tableName: getTableName(model),
     timestamps: true,
     createdAt: false,
-    updatedAt: this.prefixMetadata('dateUpdated'),
+    updatedAt: '_dateUpdated',
     schema,
-    indexes: getIndexes({ model, models }).map(index => {
-      index = shallowClone(index)
-      index.hashKey = this.prefixMetadata(index.hashKey)
-      if (index.rangeKey) {
-        index.rangeKey = this.prefixMetadata(index.rangeKey)
-      }
-
-      return index
-    })
+    indexes: getIndexes({ model, models })
   }
 
-  if (this.rangeKey) spec.rangeKey = this.rangeKey
+  if (rangeKey) tableDef.rangeKey = rangeKey
 
-  return spec
+  return tableDef
 }
 
 Backend.prototype._getTable = function _getTable ({ model }) {
@@ -138,10 +95,6 @@ Backend.prototype._getTable = function _getTable ({ model }) {
   const schema = this._toDynogelsSchema({ model })
   const table = dynogels.define(model.id, schema)
   return this._wrapTable({ table, model })
-}
-
-Backend.prototype._instanceToJSON = function _instanceToJSON (instance) {
-  return this.inflate(instance.toJSON())
 }
 
 Backend.prototype._wrapTable = function _wrapTable ({ table, model }) {
@@ -156,36 +109,39 @@ Backend.prototype._wrapTable = function _wrapTable ({ table, model }) {
     : key => table.get(key[hashKey])
 
   const get = co(function* (key) {
-    const instance = yield getMin(self.prefixMetadata(key))
+    const instance = yield getMin(key)
     yield self._maybeInflate({ objects, instance })
-    return self._instanceToJSON(instance)
+    return instance.toJSON()
   })
 
   const createWriteMethod = function createWriteMethod (method) {
     return co(function* (item, options) {
-      const { min, diff, isMinified } = minify({
-        model,
-        prefix,
-        item: item.object
-      })
+      if (method === 'create') {
+        typeforce({
+          _author: 'String',
+          _link: 'String',
+          _time: typeforce.oneOf('String', 'Number')
+        }, item)
+      }
 
+      const { min, diff, isMinified } = minify({ model, prefix, item })
       if (isMinified) {
         item.min = true
         item.object = min
       }
 
-      const result = yield table[method](self.deflate(item), options)
-      const json = self._instanceToJSON(result)
-      return extend(json.object, diff)
+      const result = yield table[method](item, options)
+      return extend(result.toJSON(), diff)
     })
   }
 
+  const { createTable } = table
   const create = createWriteMethod('create')
   const update = createWriteMethod('update')
 
   const destroy = co(function* (key, options) {
     const result = yield table.destroy(self.deflate(key), options)
-    return self._instanceToJSON(result)
+    return result.toJSON()
   })
 
   const opts = { table, model }
@@ -209,7 +165,7 @@ Backend.prototype._wrapTable = function _wrapTable ({ table, model }) {
   }
 
   return extend(crud, {
-    createTable: () => table.createTable(),
+    createTable,
     query,
     scan
   })
@@ -241,13 +197,13 @@ Backend.prototype._wrapDBOperation = function _wrapDBOperation (fn, { model, tab
     let { Item, Items } = result
     if (Item) {
       yield self._maybeInflate({ objects, instance: Item })
-      result.Item = self._instanceToJSON(Item)
+      result.Item = Item.toJSON()
     } else if (Items) {
       yield Promise.all(Items.map(instance => {
         return self._maybeInflate({ objects, instance })
       }))
 
-      result.Items = Items.map(self._instanceToJSON)
+      result.Items = Items.map(item => item.toJSON())
     }
 
     return result
@@ -255,8 +211,8 @@ Backend.prototype._wrapDBOperation = function _wrapDBOperation (fn, { model, tab
 }
 
 Backend.prototype._maybeInflate = co(function* ({ instance }) {
-  if (instance.get(this.prefixMetadata('min'))) {
-    const link = instance.get(this.prefixMetadata('link'))
+  if (instance.get('_min')) {
+    const link = instance.get('_link')
     const full = yield this.objects.getObjectByLink(link)
     instance.set(full.object)
   }

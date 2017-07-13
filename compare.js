@@ -1,7 +1,9 @@
 const debug = require('debug')('tradle:graphql-compare')
 const {
+  omit,
   deepEqual,
-  fromResourceStub
+  fromResourceStub,
+  isHeaderProperty
 } = require('./utils')
 
 module.exports = {
@@ -42,8 +44,7 @@ function filterResults ({ model, results, props }) {
   const matchBy = Object.keys(props)
   if (!matchBy.length) return results
 
-  return results.filter(wrapper => {
-    const resource = wrapper.object
+  return results.filter(resource => {
     return matchesProps({ model, resource, props })
   })
 }

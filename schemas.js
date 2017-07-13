@@ -43,35 +43,42 @@ const {
 } = require('./utils')
 
 const constants = require('./constants')
-const { TYPE } = constants
+const { TYPE, hashKey } = constants
+const primaryKeys = [hashKey]
 const StringWrapper = { type: GraphQLString }
 const TimestampType = require('./types/timestamp')
 const metadataTypes = {
-  // id: StringWrapper,
-  // title: StringWrapper,
-  link: StringWrapper,
-  permalink: StringWrapper,
-  author: StringWrapper,
-  time: { type: TimestampType }
+  _link: StringWrapper,
+  _permalink: StringWrapper,
+  _author: StringWrapper,
+  _time: { type: TimestampType },
+  _min: { type: GraphQLBoolean }
 }
 
 const IDENTITY_FN = arg => arg
-const getTypeName = name => (name.id || name).replace(/[^a-zA-Z-_0-9]/g, '_')
-const getGetterFieldName = type => `r_${getTypeName(type)}`
-const getListerFieldName = type => `rl_${getTypeName(type)}`
-const getCreaterFieldName = type => `c_${getTypeName(type)}`
-const getUpdaterFieldName = type => `u_${getTypeName(type)}`
-const getDeleterFieldName = type => `d_${getTypeName(type)}`
-// const PRIMARY_KEY_PROPS = constants.primaryKeyProperties
+const getTypeName = ({ model, type, isInput }) => {
+  if (!type) {
+    type = model.id
+  }
 
-module.exports = {
-  createSchema
+  const base = type.replace(/[^a-zA-Z-_0-9]/g, '_')
+  if (isInput) return `i_${base}`
+
+  return base
 }
 
-function createSchema ({ resolvers, objects, models, primaryKeys }) {
+const getGetterFieldName = type => `r_${getTypeName({ type })}`
+const getListerFieldName = type => `rl_${getTypeName({ type })}`
+const getCreaterFieldName = type => `c_${getTypeName({ type })}`
+const getUpdaterFieldName = type => `u_${getTypeName({ type })}`
+const getDeleterFieldName = type => `d_${getTypeName({ type })}`
+const BaseObjectModel = require('./object-model')
+
+function createSchema ({ resolvers, objects, models }) {
   const TYPES = {}
   // const metadataArgs = toNonNull(metadataTypes)
   const primaryKeyArgs = toNonNull(pick(metadataTypes, primaryKeys))
+  const getBaseObjectType = () => getType({ model: BaseObjectModel })
 
   // function createMutationType ({ model }) {
   //   const required = getRequiredProperties(model)
@@ -168,7 +175,7 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
         model,
         source,
         args: {
-          [backlink]: source._metadata.link
+          [backlink]: source._link
         }
       })
     }
@@ -196,9 +203,10 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
   //   return id.replace(/[^_a-zA-Z0-9]/g, '_')
   // }
 
-  function createEnumType ({ model }) {
-    return new GraphQLObjectType({
-      name: getTypeName(model),
+  const getEnumType = cachifyByModelAndInput(function ({ model, isInput }) {
+    const ctor = isInput ? GraphQLInputObjectType : GraphQLObjectType
+    return new ctor({
+      name: getTypeName({ model, isInput }),
       description: model.description,
       fields: {
         id: {
@@ -225,41 +233,11 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
     //   description: model.description,
     //   values
     // })
-  }
-
-  function isBadEnumModel (model) {
-    return model.subClassOf === 'tradle.Enum' && !Array.isArray(model.enum)
-  }
-
-  function isGoodEnumModel (model) {
-    return model.subClassOf === 'tradle.Enum' && Array.isArray(model.enum)
-  }
-
-  const getMetadataWrappedType = cachifyByModel(function ({ model }) {
-    if (isGoodEnumModel(model)) {
-      return getType({ model })
-    }
-
-    return new GraphQLObjectType({
-      name: getTypeName(model),
-      description: model.description,
-      fields: () => extend({
-        object: {
-          type: getType({ model }),
-          description: model.description,
-          resolve: function (source) {
-            return extend({
-              _metadata: omit(source, 'object')
-            }, source.object)
-          }
-        }
-      }, metadataTypes)
-    })
   })
 
-  const getType = cachifyByModel(function ({ model }) {
+  const getType = cachifyByModelAndInput(function ({ model, isInput }) {
     if (isGoodEnumModel(model)) {
-      return createEnumType({ model })
+      return getEnumType({ model, isInput })
     }
 
     if (isBadEnumModel(model)) {
@@ -267,54 +245,68 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
       return GraphQLJSON
     }
 
-    const required = getRequiredProperties(model)
-    const { properties } = model
-    const propertyNames = getProperties(model)
-    return new GraphQLObjectType({
-      name: '_' + getTypeName(model),
+    let ctor
+    if (isInput) {
+      ctor = GraphQLInputObjectType
+    } else if (!isInstantiable(model)) {
+      ctor = GraphQLInterfaceType
+    } else {
+      ctor = GraphQLObjectType
+    }
+
+    return new ctor({
+      name: getTypeName({ model, isInput }),
       description: model.description,
-      fields: () => {
-        const fields = {}
-        propertyNames.forEach(propertyName => {
-          let field
-          const property = properties[propertyName]
-          Object.defineProperty(fields, propertyName, {
-            enumerable: true,
-            // lazy, because of circular references
-            get: () => {
-              if (!field) {
-                field = createField({
-                  propertyName,
-                  property,
-                  model,
-                  required
-                })
-              }
-
-              return field
-            }
-          })
-        })
-
-        return fields
-      }
+      // interfaces: model.id === BaseObjectModel.id ? [] : [getBaseObjectType()],
+      fields: () => getFields({ model, isInput })
     })
   })
 
-  // const getMetadataWrappedType = getType
+  function getFields ({ model, isInput }) {
+    const required = isInput ? [] : getRequiredProperties(model)
+    if (!required) debugger
+    const { properties } = model
+    const propertyNames = getProperties(model)
+    const fields = {} //shallowClone(metadataTypes)
+    propertyNames.forEach(propertyName => {
+      let field
+      const property = properties[propertyName]
+      Object.defineProperty(fields, propertyName, {
+        enumerable: true,
+        // lazy, because of circular references
+        get: () => {
+          if (!field) {
+            field = createField({
+              propertyName,
+              property,
+              model,
+              required,
+              isInput
+            })
+          }
+
+          return field
+        }
+      })
+    })
+
+    return fields
+  }
 
   function createField ({
     propertyName,
     property,
     model,
-    required
+    required,
+    isInput
   }) {
     const { description } = property
     const { type, resolve } = getFieldType({
       propertyName,
       property,
       model,
-      isRequired: required.indexOf(propertyName) !== -1
+      isRequired: required.indexOf(propertyName) !== -1,
+      isInput
     })
 
     const field = { type }
@@ -322,10 +314,6 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
     if (description) field.description = description
 
     return field
-  }
-
-  function isNullableProperty (property) {
-    return !isComplexProperty(property.type)
   }
 
   function getFieldType (propertyInfo) {
@@ -381,13 +369,10 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
       const fields = {}
       getInstantiableModels(models).forEach(id => {
         const model = models[id]
-        const type = getMetadataWrappedType({ model })
+        const type = getType({ model })
         fields[getListerFieldName(id)] = {
           type: new GraphQLList(type),
-          args: extend({
-            // TODO:
-            // extend with props from model
-          }, metadataTypes), // nullable metadata
+          args: getFields({ model, isInput: true }),//  getType({ model, isInput: true }),
           resolve: getLister({ model })
         }
 
@@ -465,7 +450,7 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
     if (!isInstantiable(range)) {
       debug(`not sure how to handle property with range ${ref}`)
       // return {
-      //   type: getMetadataWrappedType({ model: range }),
+      //   type: getType({ model: range }),
       //   // resolve: IDENTITY_FN
       // }
       return { type: GraphQLJSON }
@@ -478,7 +463,7 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
     }
 
     const ret = {
-      type: getMetadataWrappedType({ model: range }),
+      type: getType({ model: range }),
     }
 
     if (property.type === 'array') {
@@ -490,15 +475,15 @@ function createSchema ({ resolvers, objects, models, primaryKeys }) {
     return ret
   }
 
-  const InterfaceType = new GraphQLInterfaceType({
-    name: 'Interface',
-    fields: () => extend({
-      object: IDENTITY_FN
-    }, metadataTypes),
-    resolveType: function () {
-      debugger
-    }
-  });
+  // const InterfaceType = new GraphQLInterfaceType({
+  //   name: 'Interface',
+  //   fields: () => extend({
+  //     object: IDENTITY_FN
+  //   }, metadataTypes),
+  //   resolveType: function () {
+  //     debugger
+  //   }
+  // });
 
   return {
     schema: new GraphQLSchema({
@@ -514,9 +499,32 @@ function cachifyByModel (fn, cache={}) {
   return cachify(fn, ({ model }) => model.id, cache)
 }
 
+function cachifyByModelAndInput (fn, cache={}) {
+  return cachify(fn, ({ model, isInput }) => {
+    return model.id + (isInput ? 'i' : 'o')
+  }, cache)
+}
+
 function isComplexProperty ({ type, range }) {
   return type === 'object' ||
     type === 'array' ||
     type === 'enum' ||
     range === 'json'
+}
+
+function isBadEnumModel (model) {
+  return model.subClassOf === 'tradle.Enum' && !Array.isArray(model.enum)
+}
+
+function isGoodEnumModel (model) {
+  return model.subClassOf === 'tradle.Enum' && Array.isArray(model.enum)
+}
+
+function isNullableProperty (property) {
+  return !isComplexProperty(property.type)
+}
+
+module.exports = {
+  createSchema,
+  getTypeName
 }

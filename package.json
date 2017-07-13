@@ -21,6 +21,7 @@
     "object.omit": "^2.0.1",
     "object.pick": "^1.2.0",
     "pify": "^3.0.0",
+    "typeforce": "^1.11.1",
     "xtend": "^4.0.1"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "isomorphic-fetch": "^2.2.1"
   },
   "scripts": {
-    "lint": "eslint --quiet --ignore-path .gitignore ."
+    "lint": "eslint --quiet --ignore-path .gitignore .",
+    "dynamo": "docker run -p 4569:8000 -it --rm instructure/dynamo-local-admin"
   }
 }

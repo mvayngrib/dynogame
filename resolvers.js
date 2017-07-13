@@ -81,7 +81,7 @@ module.exports = function createResolvers ({ tables, models, objects, hashKey })
 
     // TODO: lazify, cachify
     const index = getIndexes({ model, models })
-      .find(({ hashKey }) => hashKey in props)
+      .find(indexDef => indexDef.hashKey in props)
 
     if (index) {
       return {

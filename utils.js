@@ -9,6 +9,7 @@ const omit = require('object.omit')
 const { GraphQLNonNull } = require('graphql')
 const constants = require('./constants')
 const ResourceStubType = require('./types/resource-stub')
+const BaseObjectModel = require('./object-model')
 const { TYPE, SIG, SEQ, PREV_TO_SENDER, defaultIndexes } = constants
 const STRING_TYPE = {
   type: 'string'
@@ -72,7 +73,7 @@ function isRequired ({ model, propertyName }) {
 }
 
 function getRequiredProperties (model) {
-  return model.required
+  return model.required || []
 }
 
 function getRef (property) {
@@ -182,6 +183,12 @@ function withProtocolProps (model) {
   }))
 }
 
+function withHeaderProps (model) {
+  return shallowClone(model, shallowClone({
+    properties: shallowClone(model.properties, BaseObjectModel.properties)
+  }))
+}
+
 function expandGroupProps (model, arr) {
   return arr.reduce((props, name) => {
     const { group } = model.properties[name]
@@ -214,7 +221,8 @@ function normalizeModels (models) {
   //   return !isInstantiable(model) || hasNonProtocolProps(model)
   // })
 
-  const whole = mapObject(models, withProtocolProps)
+  const withProtocol = mapObject(models, withProtocolProps)
+  const whole = mapObject(withProtocol, withHeaderProps)
   return whole
   // return fixEnums(addedProtocol)
 }
@@ -251,6 +259,10 @@ function getIndexes ({ model, models }) {
 //   return omit(props, Object.keys(PROTOCOL_PROP_NAMES))
 // }
 
+function isHeaderProperty (propertyName) {
+  return propertyName in BaseObjectModel.properties
+}
+
 module.exports = {
   co,
   promisify,
@@ -280,5 +292,6 @@ module.exports = {
   normalizeModels,
   // getMetadataProps,
   // getDataProps,
-  getIndexes
+  getIndexes,
+  isHeaderProperty
 }
