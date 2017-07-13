@@ -35,8 +35,8 @@
   "scripts": {
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "dynamo": "docker run -p 4569:8000 -it --rm instructure/dynamo-local-admin",
-    "loadfixtures": "node fixfixtures.js && DEBUG=tradle* node ./scripts/load-fixtures.js ./fixtures-fixed.json",
+    "loadfixtures": "node scripts/fixfixtures.js && DEBUG=tradle* node ./scripts/load-fixtures.js ./fixtures-fixed.json",
     "serve": "DEBUG=tradle* node ./scripts/server.js",
-    "start": "yarn loadfixtures && yarn serve"
+    "start": "yarn serve"
   }
 }

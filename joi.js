@@ -2,7 +2,8 @@ const Joi = require('joi')
 const {
   isEmailProperty,
   isInlinedProperty,
-  shallowClone
+  shallowClone,
+  getRef
 } = require('./utils')
 
 module.exports = {
@@ -57,6 +58,11 @@ function toJoiProp ({
     })
 
     if (isInlined) {
+      return Joi.object()
+    }
+
+    const ref = getRef(property)
+    if (ref === 'tradle.Model') {
       return Joi.object()
     }
 

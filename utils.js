@@ -282,6 +282,16 @@ function isNullableProperty (property) {
   return !isComplexProperty(property.type)
 }
 
+function getPropertiesForLink ({ model, object }) {
+  const props = Object.keys(model.properties)
+    .filter(propertyName => {
+      const prop = model.properties[propertyNames]
+      return !prop.virtual
+    })
+
+  return pick(object, props)
+}
+
 module.exports = {
   co,
   promisify,
@@ -316,5 +326,6 @@ module.exports = {
   isComplexProperty,
   isNullableProperty,
   isGoodEnumModel,
-  isBadEnumModel
+  isBadEnumModel,
+  getPropertiesForLink
 }
