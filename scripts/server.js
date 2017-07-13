@@ -11,20 +11,7 @@ const expressGraphQL = require('express-graphql')
 const { createSchema } = require('../schemas')
 const Backend = require('../backend')
 // const createResolvers = require('../resolvers')
-const objects = {
-  _cache: {},
-  getObjectByLink: co(function* (link) {
-    if (link in objects._cache) {
-      return objects._cache[link]
-    }
-
-    throw new Error('not found')
-
-    // debugger
-    // throw new Error('getObjectByLink not available in this environment')
-  })
-}
-
+const objects = require('./helpers/keeper')
 const port = 4000
 const time = String(1499486259331)
 const models = require('./helpers/models')

@@ -125,12 +125,7 @@ Backend.prototype._wrapTable = function _wrapTable ({ table, model }) {
       }
 
       const { min, diff, isMinified } = minify({ model, prefix, item })
-      if (isMinified) {
-        item.min = true
-        item.object = min
-      }
-
-      const result = yield table[method](item, options)
+      const result = yield table[method](min, options)
       return extend(result.toJSON(), diff)
     })
   }
@@ -214,7 +209,7 @@ Backend.prototype._maybeInflate = co(function* ({ instance }) {
   if (instance.get('_min')) {
     const link = instance.get('_link')
     const full = yield this.objects.getObjectByLink(link)
-    instance.set(full.object)
+    instance.set(full)
   }
 
   return instance

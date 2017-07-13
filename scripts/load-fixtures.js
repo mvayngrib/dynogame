@@ -4,28 +4,8 @@ require('./helpers/local-config')
 const path = require('path')
 const fixtures = require(path.resolve(process.argv[2]))
 const co = require('co').wrap
-const low = require('lowdb')
 const Backend = require('../backend')
-const db = low('keeper.json')
-db.defaults({})
-  .write()
-
-const objects = {
-  putObject: co(function* (wrapper) {
-    db.set(wrapper._link, wrapper)
-      .write()
-
-    return wrapper
-  }),
-  getObjectByLink: co(function* (link) {
-    const val = db.get(link).value()
-    if (!val) {
-      throw new Error('not found')
-    }
-
-    return val
-  })
-}
+const objects = require('./helpers/keeper')
 
 const { tables } = new Backend({
   hashKey: '_link',

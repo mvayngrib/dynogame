@@ -18,11 +18,10 @@ const MINIFY_PREFERENCES = [
 function minify ({ item, model }) {
   let min = shallowClone(item)
   let diff = {}
-  let isMinified
 
   for (const filter of MINIFY_PREFERENCES) {
     const size = JSON.stringify(min).length
-    if (size < 1000) return { min, diff }
+    if (size < 1000) break
 
     let slimmed
     for (let propertyName in min) {
@@ -40,12 +39,12 @@ function minify ({ item, model }) {
       if (!keep) {
         diff[propertyName] = item[propertyName]
         delete min[propertyName]
-        isMinified = true
+        min._min = true
       }
     }
   }
 
-  return { min, diff, isMinified }
+  return { min, diff }
 }
 
 function minusPhotos ({ property }) {
