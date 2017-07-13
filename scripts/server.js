@@ -46,7 +46,7 @@ const { schema, schemas } = createSchema({
 })
 
 const app = express()
-const GRAPHQL_PATH = '/graphql'
+const GRAPHQL_PATH = '/'
 app.use(GRAPHQL_PATH, expressGraphQL(req => ({
   schema,
   graphiql: true,
@@ -57,15 +57,22 @@ app.set('port', port)
 let server = http.createServer(app)
 server.listen(port)
 
-const createClient = require('../client')
-const client = createClient({
-  schemas,
-  models,
-  endpoint: `http://localhost:${port}${GRAPHQL_PATH}`
+// const createClient = require('../client')
+const gql = require('graphql-tag')
+const { ApolloClient, createNetworkInterface } = require('apollo-client')
+const client = new ApolloClient({
+  networkInterface: createNetworkInterface({
+    uri: `http://localhost:${port}${GRAPHQL_PATH}`
+  })
 })
 
+// function runQuery (query)  {
+//   client.query({
+//     query: gql(`query)
+//   })
+// }
+
 // setTimeout(function () {
-//   const gql = require('graphql-tag')
 //   client.query({
 //       query: gql(`
 //         query {
