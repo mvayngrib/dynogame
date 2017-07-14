@@ -24,3 +24,5 @@ pagination
   http://graphql.org/learn/pagination/
   opaque cursor 
     map `filter` to dynamodb query, and dynamodb query to `result.LastEvaluatedKey`
+
+separate schema generation from resolvers

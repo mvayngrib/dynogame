@@ -11,20 +11,11 @@ const expressGraphQL = require('express-graphql')
 const { createSchema } = require('../schemas')
 const Backend = require('../backend')
 // const createResolvers = require('../resolvers')
-const objects = require('./helpers/keeper')
+const objects = require('./helpers/objects')
 const port = 4000
 const time = String(1499486259331)
 const models = require('./helpers/models')
-const backend = new Backend({
-  hashKey: '_link',
-  prefix: {
-    metadata: 'm',
-    data: 'd'
-  },
-  models,
-  objects
-})
-
+const backend = require('./helpers/backend')({ models, objects })
 const { tables, resolvers } = backend
 const { schema, schemas } = createSchema({
   resolvers,

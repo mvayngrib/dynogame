@@ -1,4 +1,5 @@
 const debug = require('debug')('tradle:graphql-schema')
+const { printSchema } = require('graphql')
 const {
   GraphQLSchema,
   GraphQLNonNull,
@@ -368,7 +369,10 @@ function createSchema ({ resolvers, objects, models }) {
                 field = createField({
                   propertyName,
                   property: shallowClone(property, {
-                    type: 'array'
+                    type: 'array',
+                    items: {
+                      type: 'string'
+                    }
                   }),
                   model,
                   isInput: true,
@@ -498,8 +502,14 @@ function createSchema ({ resolvers, objects, models }) {
       case 'date':
         return { type: GraphQLDate }
       case 'object':
+        return getObjectValueType({
+          model,
+          propertyName,
+          property,
+          isInput
+        })
       case 'array':
-        return getRefType({
+        return getArrayValueType({
           model,
           propertyName,
           property,
@@ -512,6 +522,39 @@ function createSchema ({ resolvers, objects, models }) {
         // debug(`unexpected property type: ${type}`)
         // return GraphQLJSON
         throw new Error(`unexpected property type: ${type}`)
+    }
+  }
+
+  function getObjectValueType (opts) {
+    return getRefType(opts)
+  }
+
+  function getArrayValueType (opts) {
+    const { model, propertyName, property, isInput } = opts
+    if (getRef(property)) {
+      return getRefType(opts)
+    }
+
+    if (property.items.properties) {
+      // inlined type unique to this model
+      return {
+        type: new GraphQLList(getType({
+          model: {
+            id: model.id + '_' + propertyName,
+            properties: property.items.properties
+          },
+          isInput
+        }))
+      }
+    }
+
+    return {
+      type: new GraphQLList(getFieldType({
+        model,
+        propertyName,
+        property: property.items,
+        isInput
+      }).type)
     }
   }
 
@@ -631,12 +674,14 @@ function createSchema ({ resolvers, objects, models }) {
     return ret
   }
 
+  const schema = new GraphQLSchema({
+    query: QueryType,
+    // mutation: MutationType,
+    types: getValues(TYPES)
+  })
+
   return {
-    schema: new GraphQLSchema({
-      query: QueryType,
-      // mutation: MutationType,
-      types: getValues(TYPES)
-    }),
+    schema,
     schemas
   }
 }

@@ -5,7 +5,7 @@ const path = require('path')
 const fixtures = require(path.resolve(process.argv[2]))
 const co = require('co').wrap
 const Backend = require('../backend')
-const objects = require('./helpers/keeper')
+const objects = require('./helpers/objects')
 
 const { tables } = new Backend({
   hashKey: '_link',

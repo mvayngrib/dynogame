@@ -1,3 +1,5 @@
 node_modules/
 *.log
 keeper.json
+objects.json
+schema.graphql

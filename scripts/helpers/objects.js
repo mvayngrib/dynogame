@@ -1,6 +1,6 @@
 const co = require('co').wrap
 const low = require('lowdb')
-const db = low('keeper.json')
+const db = low('objects.json')
 db.defaults({})
   .write()
 

@@ -38,6 +38,8 @@
     "loadfixtures": "node scripts/fixfixtures.js && DEBUG=tradle* node ./scripts/load-fixtures.js ./fixtures-fixed.json",
     "start": "yarn server",
     "server": "DEBUG=tradle* node scripts/server.js",
-    "debug:server": "DEBUG=tradle* node --debug --inspect scripts/server"
+    "debug:server": "DEBUG=tradle* node --debug --inspect scripts/server",
+    "debug-brk:server": "DEBUG=tradle* node --debug-brk --inspect scripts/server",
+    "genschema": "node scripts/gen-schema.js > schema.graphql"
   }
 }
