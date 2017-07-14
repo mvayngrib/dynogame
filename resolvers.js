@@ -2,39 +2,28 @@ const debug = require('debug')('tradle:graphql-resolvers')
 const {
   co,
   getRequiredProperties,
-  getIndexes
+  getIndexes,
+  sortResults
 } = require('./utils')
 
-const { filterResults } = require('./compare')
+const { filterResults } = require('./filter-memory')
+const createSearchQuery = require('./filter-dynamodb')
 
 module.exports = function createResolvers ({ tables, objects, models, primaryKey }) {
-  const runQuery = co(function* ({ model, key, props }) {
-    let query = tables[model.id].query(key.value)
-    if (key.index) {
-      query = query.usingIndex(key.index)
-    }
 
-    const result = yield query.exec()
-    return postProcessSearchResult({ model, result, props })
-  })
-
-  const runSearch = co(function* ({ model, props }) {
-    // debug('scanning based on arbitrary attributes is not yet implemented')
-    // maybe check if query is possible, then filter the results
-    // otherwise scan
-    debug('TODO: implement more efficient scanning')
-    const result = yield tables[model.id].scan().exec()
-    return postProcessSearchResult({ model, result, props })
-  })
-
-  function postProcessSearchResult ({ model, result, props }) {
+  function postProcessSearchResult ({ model, result, filter, orderBy }) {
     const { Count, Items } = result
     if (!Count) return []
 
-    return filterResults({
+    const survivors = filterResults({
       model,
       results: resultsToJson(Items),
-      props
+      filter
+    })
+
+    return sortResults({
+      results: survivors,
+      orderBy
     })
   }
 
@@ -49,14 +38,25 @@ module.exports = function createResolvers ({ tables, objects, models, primaryKey
   })
 
   const list = co(function* ({ model, source, args, context, info }) {
-    const props = args
-    const primaryOrIndexKey = getQueryBy({ model, props })
-    let results
-    if (primaryOrIndexKey) {
-      results = yield runQuery({ model, props, key: primaryOrIndexKey })
-    } else {
-      results = yield runSearch({ model, props })
-    }
+    const { filter, orderBy } = args
+    const op = createSearchQuery({
+      table: tables[model.id],
+      model,
+      filter,
+      orderBy
+    })
+
+    const result = yield op.exec()
+    const results = postProcessSearchResult({ model, result, filter, orderBy })
+
+    // const props = args
+    // const primaryOrIndexKey = getQueryBy({ model, props })
+    // let results
+    // if (primaryOrIndexKey) {
+    //   results = yield runQuery({ model, props, key: primaryOrIndexKey })
+    // } else {
+    //   results = yield runSearch({ model, props })
+    // }
 
     if (!results.length) return results
 

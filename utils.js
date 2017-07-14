@@ -251,8 +251,14 @@ function fromResourceStub (props) {
   }
 }
 
-function getIndexes ({ model, models }) {
+function getIndexes ({ model }) {
   return defaultIndexes
+}
+
+function getIndexedProperties ({ model }) {
+  return getIndexes({ model })
+    .map(({ hashKey }) => hashKey)
+    .concat(constants.hashKey)
 }
 
 // function getNonProtocolProps (props) {
@@ -285,11 +291,54 @@ function isNullableProperty (property) {
 function getPropertiesForLink ({ model, object }) {
   const props = Object.keys(model.properties)
     .filter(propertyName => {
-      const prop = model.properties[propertyNames]
+      const prop = model.properties[propertyName]
       return !prop.virtual
     })
 
   return pick(object, props)
+}
+
+function lazy (fn) {
+  let val
+  let called
+  return function (...args) {
+    if (called) return val
+
+    val = fn.apply(this, args)
+    called = true
+    return val
+  }
+}
+
+function toObject (arr) {
+  const obj = {}
+  for (let val of arr) {
+    obj[val] = true
+  }
+
+  return obj
+}
+
+function isScalarProperty (property) {
+  return !isComplexProperty(property)
+}
+
+function sortResults ({ results, orderBy }) {
+  const { property, desc } = orderBy
+  const asc = !desc // easier to think about
+  return results.sort(function (a, b) {
+    const aVal = a[property]
+    const bVal = b[property]
+    if (aVal === bVal) {
+      return 0
+    }
+
+    if (aVal < bVal) {
+      return asc ? -1 : 1
+    }
+
+    return asc ? 1 : -1
+  })
 }
 
 module.exports = {
@@ -301,6 +350,8 @@ module.exports = {
   deepEqual,
   pick,
   omit,
+  toObject,
+  lazy,
   // getNonProtocolProps,
   isResourceStub,
   fromResourceStub,
@@ -322,10 +373,13 @@ module.exports = {
   // getMetadataProps,
   // getDataProps,
   getIndexes,
+  getIndexedProperties,
   isHeaderProperty,
   isComplexProperty,
+  isScalarProperty,
   isNullableProperty,
   isGoodEnumModel,
   isBadEnumModel,
-  getPropertiesForLink
+  getPropertiesForLink,
+  sortResults
 }
