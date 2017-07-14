@@ -47,28 +47,7 @@ module.exports = function createResolvers ({ tables, objects, models, primaryKey
     })
 
     const result = yield op.exec()
-    const results = postProcessSearchResult({ model, result, filter, orderBy })
-
-    // const props = args
-    // const primaryOrIndexKey = getQueryBy({ model, props })
-    // let results
-    // if (primaryOrIndexKey) {
-    //   results = yield runQuery({ model, props, key: primaryOrIndexKey })
-    // } else {
-    //   results = yield runSearch({ model, props })
-    // }
-
-    if (!results.length) return results
-
-    const required = getRequiredProperties(model)
-    const first = results[0]
-    const missing = required.filter(prop => !(prop in first))
-    if (missing.length) {
-      debug(`missing properties: ${missing.join(', ')}`)
-    }
-
-    // for now
-    return results
+    return postProcessSearchResult({ model, result, filter, orderBy })
   })
 
   function getQueryBy ({ model, props }) {

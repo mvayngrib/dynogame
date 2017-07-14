@@ -11,39 +11,46 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy }) 
     .concat(hashKey)
 
   const indexedPropsMap = toObject(indexedProps)
+  const { EQ } = filter
   const usedIndexedProps = usedProps.filter(prop => {
-    return filter.EQ && prop in filter.EQ && prop in indexedPropsMap
+    return EQ && prop in EQ && prop in indexedPropsMap
   })
 
   const opType = usedIndexedProps.length
     ? 'query'
     : 'scan'
 
-  let builder = table[opType]
+  let createBuilder = table[opType]
+  let builder
   let queryProp
+  let fullScanRequired = true
   if (opType === 'query') {
+    // supported key condition operators:
+    //   http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html#Query.KeyConditionExpressions
+
     if (usedIndexedProps.includes(hashKey)) {
       queryProp = hashKey
     } else {
       queryProp = usedIndexedProps[0]
     }
 
-    builder = builder(filter.EQ[queryProp])
+    builder = createBuilder(EQ[queryProp])
     if (queryProp !== hashKey) {
       const index = indexes.find(i => i.hashKey === queryProp)
-      builder = builder.usingIndex(index.name)
+      builder.usingIndex(index.name)
     }
 
     if (orderBy.property === queryProp) {
+      fullScanRequired = false
       if (orderBy.desc) {
-        builder = builder.descending()
+        builder.descending()
       } else {
-        builder = builder.ascending()
+        builder.ascending()
       }
     }
 
   } else {
-    builder = builder()
+    builder = createBuilder()
   }
 
   for (let op in filter) {
@@ -56,20 +63,30 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy }) 
 
       if (op === 'EQ') {
         if (prop !== queryProp) {
-          builder = builder.where(prop).equals(val[prop])
+          builder.where(prop).equals(val[prop])
         }
       } else if (op === 'STARTS_WITH') {
-        builder = builder.where(prop).beginsWith(val[prop])
+        builder.where(prop).beginsWith(val[prop])
       } else if (op === 'IN') {
-        builder = builder.where(prop).in(val[prop])
+        builder.where(prop).in(val[prop])
       } else if (op === 'BETWEEN') {
         let pVal = val[prop]
-        builder = builder.where(prop).between(...pVal)
+        builder.where(prop).between(...pVal)
       } else {
         debug(`unsupported operator ${op}`)
       }
     }
   }
+
+  // if (fullScanRequired) {
+  //   if (limit) {
+  //     debug('unable to set limit for db search operation, full scan is required')
+  //   }
+
+  //   builder.loadAll()
+  // } else if (limit) {
+  //   builder.limit(limit)
+  // }
 
   return builder
 }
