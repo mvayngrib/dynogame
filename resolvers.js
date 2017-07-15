@@ -11,7 +11,7 @@ const createSearchQuery = require('./filter-dynamodb')
 
 module.exports = function createResolvers ({ tables, objects, models, primaryKey }) {
 
-  function postProcessSearchResult ({ model, result, filter, orderBy }) {
+  function postProcessSearchResult ({ model, result, filter, orderBy, limit=Infinity }) {
     const { Count, Items } = result
     if (!Count) return []
 
@@ -21,10 +21,12 @@ module.exports = function createResolvers ({ tables, objects, models, primaryKey
       filter
     })
 
-    return sortResults({
+    const sorted = sortResults({
       results: survivors,
       orderBy
     })
+
+    return sorted.slice(0, limit)
   }
 
   const update = co(function* ({ model, props }) {
@@ -38,16 +40,17 @@ module.exports = function createResolvers ({ tables, objects, models, primaryKey
   })
 
   const list = co(function* ({ model, source, args, context, info }) {
-    const { filter, orderBy } = args
+    const { filter, orderBy, limit } = args
     const op = createSearchQuery({
       table: tables[model.id],
       model,
       filter,
-      orderBy
+      orderBy,
+      limit
     })
 
     const result = yield op.exec()
-    return postProcessSearchResult({ model, result, filter, orderBy })
+    return postProcessSearchResult({ model, result, filter, orderBy, limit })
   })
 
   function getQueryBy ({ model, props }) {
