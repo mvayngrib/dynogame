@@ -4,7 +4,7 @@
 
 "@tradle/custom-models@https://github.com/tradle/custom-models":
   version "4.10.10"
-  resolved "https://github.com/tradle/custom-models#f5cecd533096c4c1ae4f9cfaef733d1a801493a6"
+  resolved "https://github.com/tradle/custom-models#15b66361757b92a0d5acb8753317856eeee6b689"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
@@ -12,7 +12,7 @@
 
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
-  resolved "https://github.com/tradle/models#df268508f14fda098da6cab19ddd2a80acf83bfb"
+  resolved "https://github.com/tradle/models#31d270e67818a48d834bb6afdb584022a19e7398"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"

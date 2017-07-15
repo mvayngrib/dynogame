@@ -1,6 +1,7 @@
 module.exports = {
   type: 'tradle.Model',
   id: 'tradle.Object',
+  abstract: true,
   properties: {
     // type
     _t: {

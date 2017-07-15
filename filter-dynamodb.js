@@ -1,10 +1,10 @@
-
 const debug = require('debug')('tradle:graphql-filter-dynamodb')
-const { toObject, getIndexes } = require('./utils')
+const { clone, toObject, getIndexes } = require('./utils')
 const OPERATORS = require('./operators')
 const { hashKey } = require('./constants')
 
 module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, limit }) {
+  filter = clone(filter)
   const indexes = getIndexes({ model })
   const usedProps = getUsedProperties({ model, filter })
   const indexedProps = indexes.map(index => index.hashKey)
@@ -35,6 +35,7 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, li
     }
 
     builder = createBuilder(EQ[queryProp])
+    delete EQ[queryProp]
     if (queryProp !== hashKey) {
       const index = indexes.find(i => i.hashKey === queryProp)
       builder.usingIndex(index.name)
@@ -53,6 +54,7 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, li
     builder = createBuilder()
   }
 
+  const conditionMethod = opType === 'query' ? 'filter' : 'where'
   for (let op in filter) {
     let val = filter[op]
     for (let prop in val) {
@@ -62,31 +64,29 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, li
       }
 
       if (op === 'EQ') {
-        if (prop !== queryProp) {
-          builder.where(prop).equals(val[prop])
-        }
+        builder[conditionMethod](prop).equals(val[prop])
       } else if (op === 'STARTS_WITH') {
-        builder.where(prop).beginsWith(val[prop])
+        builder[conditionMethod](prop).beginsWith(val[prop])
       } else if (op === 'IN') {
-        builder.where(prop).in(val[prop])
+        builder[conditionMethod](prop).in(val[prop])
       } else if (op === 'BETWEEN') {
         let pVal = val[prop]
-        builder.where(prop).between(...pVal)
+        builder[conditionMethod](prop).between(...pVal)
       } else {
         debug(`unsupported operator ${op}`)
       }
     }
   }
 
-  // if (fullScanRequired) {
-  //   if (limit) {
-  //     debug('unable to set limit for db search operation, full scan is required')
-  //   }
+  if (fullScanRequired) {
+    if (limit) {
+      debug('unable to set limit for db search operation, full scan is required')
+    }
 
-  //   builder.loadAll()
-  // } else if (limit) {
-  //   builder.limit(limit)
-  // }
+    builder.loadAll()
+  } else if (limit) {
+    builder.limit(limit)
+  }
 
   return builder
 }

@@ -50,6 +50,7 @@ const {
   co
 } = require('./utils')
 
+const USE_INTERFACES = false
 const constants = require('./constants')
 const { TYPE, hashKey } = constants
 const primaryKeys = [hashKey]
@@ -261,7 +262,7 @@ function createSchema ({ resolvers, objects, models }) {
     if (isInput) {
       ctor = GraphQLInputObjectType
     } else if (!isInstantiable(model)) {
-      ctor = GraphQLInterfaceType
+      ctor = wrapInterfaceConstructor({ model })
     } else {
       ctor = GraphQLObjectType
     }
@@ -269,10 +270,28 @@ function createSchema ({ resolvers, objects, models }) {
     return new ctor({
       name: getTypeName({ model, isInput }),
       description: model.description,
-      // interfaces: model.id === BaseObjectModel.id ? [] : [getBaseObjectType()],
+      interfaces: getInterfaces({ model, isInput }),
       fields: () => getFields({ model, isInput })
     })
   })
+
+  function wrapInterfaceConstructor ({ model }) {
+    return function (opts) {
+      opts.resolveType = data => {
+        debugger
+        return getType({ model: models[data[TYPE]] })
+      }
+
+      return new GraphQLInterfaceType(opts)
+    }
+  }
+
+  function getInterfaces ({ model, isInput }) {
+    const { interfaces=[] } = model
+    return interfaces.filter(isGoodInterface).map(type => {
+      return getType({ model: models[type], isInput })
+    })
+  }
 
   const getOperatorFields = cachifyByModel(function ({ model }) {
     return {
@@ -651,12 +670,16 @@ function createSchema ({ resolvers, objects, models }) {
 
     // e.g. interface or abstract class
     if (!isInstantiable(range)) {
+      if (isGoodInterface(range.id)) {
+        return { type: GraphQLJSON }
+      }
+
       debug(`not sure how to handle property with range ${ref}`)
-      // return {
-      //   type: getType({ model: range }),
-      //   // resolve: IDENTITY_FN
-      // }
-      return { type: GraphQLJSON }
+      return {
+        type: getType({ model: range }),
+        // resolve: IDENTITY_FN
+      }
+      // return { type: GraphQLJSON }
     }
 
     if (isInlinedProperty({ models, property })) {
@@ -702,6 +725,12 @@ function cachifyByModelAndInput (fn, cache={}) {
 
 function alwaysTrue () {
   return true
+}
+
+function isGoodInterface (id) {
+  return USE_INTERFACES &&
+    id !== 'tradle.Message' &&
+    id !== 'tradle.Document'
 }
 
 module.exports = {
