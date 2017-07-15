@@ -41,7 +41,7 @@ module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, li
       builder.usingIndex(index.name)
     }
 
-    if (orderBy.property === queryProp) {
+    if (orderBy && orderBy.property === queryProp) {
       fullScanRequired = false
       if (orderBy.desc) {
         builder.descending()

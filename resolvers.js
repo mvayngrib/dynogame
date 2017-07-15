@@ -15,18 +15,20 @@ module.exports = function createResolvers ({ tables, objects, models, primaryKey
     const { Count, Items } = result
     if (!Count) return []
 
-    const survivors = filterResults({
+    let survivors = filterResults({
       model,
       results: resultsToJson(Items),
       filter
     })
 
-    const sorted = sortResults({
-      results: survivors,
-      orderBy
-    })
+    if (orderBy) {
+      survivors = sortResults({
+        results: survivors,
+        orderBy
+      })
+    }
 
-    return sorted.slice(0, limit)
+    return survivors.slice(0, limit)
   }
 
   const update = co(function* ({ model, props }) {
