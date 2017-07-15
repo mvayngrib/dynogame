@@ -35,11 +35,12 @@
   "scripts": {
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "dynamo": "docker run -p 4569:8000 -it --rm instructure/dynamo-local-admin",
-    "loadfixtures": "node scripts/fixfixtures.js && DEBUG=tradle* node ./scripts/load-fixtures.js ./fixtures-fixed.json",
+    "loadfixtures": "node example/helpers/fixfixtures.js && DEBUG=tradle* node ./example/load-fixtures.js ./fixtures-fixed.json",
     "start": "yarn server",
-    "server": "DEBUG=tradle* node scripts/server.js",
-    "debug:server": "DEBUG=tradle* node --debug --inspect scripts/server",
-    "debug-brk:server": "DEBUG=tradle* node --debug-brk --inspect scripts/server",
+    "server": "DEBUG=tradle* node example/server",
+    "client": "DEBUG=tradle* node example/client",
+    "debug:server": "DEBUG=tradle* node --debug --inspect example/server",
+    "debug-brk:server": "DEBUG=tradle* node --debug-brk --inspect example/server",
     "genschema": "node scripts/gen-schema.js > schema.graphql"
   }
 }

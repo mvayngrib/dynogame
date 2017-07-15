@@ -1,7 +1,7 @@
 const fs = require('fs')
-const models = require('./helpers/models')
-const utils = require('../utils')
-const fixtures = require('../fixtures')
+const models = require('./models')
+const utils = require('../../utils')
+const fixtures = require('../../fixtures')
   .filter(fix => {
     const type = fix._t
     return models[type] //&& type !== 'tradle.ProductList'
