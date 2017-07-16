@@ -16,7 +16,6 @@ const {
 
 const GraphQLJSON = require('graphql-type-json')
 // const validateResource = require('@tradle/validate-resource')
-const ResourceStubType = require('./types/resource-stub')
 const OPERATORS = require('./operators')
 // const GraphQLDate = require('graphql-date')
 const {
@@ -55,7 +54,7 @@ const constants = require('./constants')
 const { TYPE, hashKey } = constants
 const primaryKeys = [hashKey]
 const StringWrapper = { type: GraphQLString }
-const TimestampType = require('./types/timestamp')
+const { TimestampType, BytesType, ResourceStubType } = require('./types')
 // TODO: use getFields for this
 const metadataTypes = {
   _link: StringWrapper,
@@ -278,7 +277,6 @@ function createSchema ({ resolvers, objects, models }) {
   function wrapInterfaceConstructor ({ model }) {
     return function (opts) {
       opts.resolveType = data => {
-        debugger
         return getType({ model: models[data[TYPE]] })
       }
 
@@ -516,8 +514,10 @@ function createSchema ({ resolvers, objects, models }) {
     }
 
     switch (type) {
+      case 'bytes':
+        return { type: BytesType }
       case 'string':
-        return StringWrapper
+        return { type: GraphQLString }
       case 'boolean':
         return { type: GraphQLBoolean }
       case 'number':
@@ -542,9 +542,7 @@ function createSchema ({ resolvers, objects, models }) {
         debug(`unexpected property type: ${type}`)
         return { type: GraphQLJSON }
       default:
-        // debug(`unexpected property type: ${type}`)
-        // return GraphQLJSON
-        throw new Error(`unexpected property type: ${type}`)
+        throw new Error(`${model.id} property ${propertyName} has unexpected type: ${type}`)
     }
   }
 

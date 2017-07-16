@@ -10,6 +10,8 @@ module.exports = {
   toJoi
 }
 
+const BYTES = Joi.string().regex(/^(hex|base64):/)
+
 function toJoi ({ model, models }) {
   const { properties, required } = model
   const joiProps = {}
@@ -36,6 +38,8 @@ function toJoiProp ({
   switch (type) {
   case 'string':
     return toJoiStringProperty({ propertyName, property })
+  case 'bytes':
+    return BYTES
   case 'number':
     return toJoiNumberProperty({ propertyName, property })
   case 'date':

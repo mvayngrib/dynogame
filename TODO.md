@@ -26,3 +26,5 @@ pagination
     map `filter` to dynamodb query, and dynamodb query to `result.LastEvaluatedKey`
 
 separate schema generation from resolvers
+
+dynogels does not allow properties outside of schema
