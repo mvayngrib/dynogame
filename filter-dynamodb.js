@@ -4,7 +4,7 @@ const OPERATORS = require('./operators')
 const { hashKey } = require('./constants')
 
 module.exports = function filterViaDynamoDB ({ table, model, filter, orderBy, limit }) {
-  filter = clone(filter)
+  filter = clone(filter || {})
   const indexes = getIndexes({ model })
   const usedProps = getUsedProperties({ model, filter })
   const indexedProps = indexes.map(index => index.hashKey)
