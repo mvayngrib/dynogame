@@ -1,7 +1,9 @@
 const fs = require('fs')
+const path = require('path')
+const pick = require('object.pick')
 const models = require('./models')
-const utils = require('../../utils')
-const fixtures = require('../../fixtures')
+const { utils } = require('@tradle/validate-resource')
+const fixtures = require('./fixtures')
   .filter(fix => {
     const type = fix._t
     return models[type] //&& type !== 'tradle.ProductList'
@@ -13,6 +15,12 @@ function fixResource (res, model) {
 
   const { properties } = model
   if (res.time) res._time = '' + res.time
+
+  const virtual = res._virtual
+    ? utils.pickVirtual(res)
+    : pick(res, Object.keys(res).filter(prop => {
+        return prop[0] === '_' && prop.length > 2
+      }))
 
   Object.keys(res).forEach(propertyName => {
     if (!(propertyName in properties)) {
@@ -47,7 +55,14 @@ function fixResource (res, model) {
     }
   })
 
+  if (Object.keys(virtual).length) {
+    utils.setVirtual(res, virtual)
+  }
+
   return res
 }
 
-fs.writeFileSync('./fixtures-fixed.json', JSON.stringify(fixtures, null, 2))
+fs.writeFileSync(
+  path.resolve(__dirname, './fixtures-fixed.json'),
+  JSON.stringify(fixtures, null, 2)
+)

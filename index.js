@@ -1,27 +1,30 @@
+const graphql = require('graphql')
+const {
+  constants,
+  createTables,
+  createResolvers
+} = require('@tradle/dynamodb')
 
-const Backend = require('./backend')
-const { createSchema } = require('./schemas')
+const { createSchema } = require('@tradle/schema-graphql')
 
-module.exports = function createGoodies ({ models, objects }) {
-  const { tables, resolvers } = new Backend({
-    hashKey: '_link',
-    prefix: {
-      metadata: 'm',
-      data: 'd'
-    },
-    models,
-    objects
-  })
-
-  const { schema, schemas } = createSchema({
-    resolvers,
+exports = module.exports = function setup ({ models, objects }) {
+  const tables = createTables({ models, objects })
+  const resolvers = createResolvers({
+    objects,
     models,
     tables
   })
 
+  const { schema, schemas } = createSchema({ models, objects, resolvers })
+  const executeQuery = (query, variables) => {
+    return graphql(schema, query, null, {}, variables)
+  }
+
   return {
     tables,
+    resolvers,
     schema,
-    schemas
+    schemas,
+    executeQuery
   }
 }

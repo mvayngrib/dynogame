@@ -9,29 +9,39 @@ const client = new ApolloClient({
   })
 })
 
+// client.query({
+//     query: gql(`
+//       query {
+//         rl_tradle_FormRequest(
+//           filter: {
+//             IN: {
+//               form: ["tradle.PhotoID", "tradle.Selfie"]
+//             }
+//           },
+//           orderBy: {
+//             property: _author,
+//             desc: false
+//           },
+//           limit: 2
+//         ) {
+//           _permalink
+//           _time
+//           _link
+//           _author
+//           form
+//         }
+//       }
+//     `),
+//   })
 client.query({
     query: gql(`
-      query {
-        rl_tradle_FormRequest(
-          filter: {
-            IN: {
-              form: ["tradle.PhotoID", "tradle.Selfie"]
-            }
-          },
-          orderBy: {
-            property: _author,
-            desc: false
-          },
-          limit: 2
-        ) {
-          _permalink
-          _time
-          _link
-          _author
-          form
+      {
+        rl_tradle_ProductList {
+          _link,
+          list
         }
       }
-    `),
+    `)
   })
   .then(data => console.log(prettify(data)))
   .catch(error => console.error(error));

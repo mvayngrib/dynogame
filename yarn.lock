@@ -4,23 +4,61 @@
 
 "@tradle/custom-models@https://github.com/tradle/custom-models":
   version "4.10.10"
-  resolved "https://github.com/tradle/custom-models#15b66361757b92a0d5acb8753317856eeee6b689"
+  resolved "https://github.com/tradle/custom-models#3e51ee7cd842350c571abd1bb002001dbe0261bb"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
     write-file-atomic "^1.1.4"
+
+"@tradle/dynamodb@tradle/dynamodb":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/dynamodb/tar.gz/0002ac9a030c2a8d8833bf5ee8ce2f811e0563c4"
+  dependencies:
+    bindall "^2.0.1"
+    clone "^2.1.1"
+    co "^4.6.0"
+    debug "^2.6.8"
+    deep-equal "^1.0.1"
+    dynogels "^8.0.1"
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
+    pify "^3.0.0"
+    typeforce "^1.11.1"
+    xtend "^4.0.1"
 
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
-  resolved "https://github.com/tradle/models#31d270e67818a48d834bb6afdb584022a19e7398"
+  resolved "https://github.com/tradle/models#d3e45d68764a7bd9805cea01b51cc1d8b3f9bf32"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
     write-file-atomic "^1.1.4"
 
+"@tradle/schema-graphql@tradle/schema-graphql":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/schema-graphql/tar.gz/9203073a0fe9fcca40140007eb427693e541551d"
+  dependencies:
+    co "^4.6.0"
+    debug "^2.6.6"
+    deep-equal "^1.0.1"
+    graphql "^0.10.4"
+    graphql-iso-date "^3.2.0"
+    graphql-type-json "^0.1.4"
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
+    typeforce "^1.11.1"
+    xtend "^4.0.1"
+
+"@tradle/schema-joi@https://github.com/tradle/schema-joi":
+  version "1.0.0"
+  resolved "https://github.com/tradle/schema-joi#4a17c1987f0353389d83c053e7ff6c31b2e1897a"
+  dependencies:
+    joi "^10.6.0"
+    xtend "^4.0.1"
+
 "@tradle/validate-model@tradle/validate-model":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/7409da4a25cd2d39c1a05032d933db2b904bccbe"
+  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/ba39da038d63e237fd969cb2449c36e92a2edc3c"
   dependencies:
     object.omit "^2.0.1"
     object.pick "^1.2.0"
@@ -29,8 +67,10 @@
 
 "@tradle/validate-resource@tradle/validate-resource":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/842c37f47f25a5a7ab4ca6a4d2927957e89e9a13"
+  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/bff9df32435fe9828fab3e7544f92e906a8eea35"
   dependencies:
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
     traverse "^0.6.6"
 
 "@types/async@^2.0.31":
@@ -38,8 +78,8 @@
   resolved "https://registry.yarnpkg.com/@types/async/-/async-2.0.40.tgz#ac02de68e66c004a61b7cb16df8b1db3a254cca9"
 
 "@types/graphql@^0.9.0":
-  version "0.9.3"
-  resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-0.9.3.tgz#4a2a888e110c796eb7671bf8f9ecef229ad67749"
+  version "0.9.4"
+  resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-0.9.4.tgz#cdeb6bcbef9b6c584374b81aa7f48ecf3da404fa"
 
 "@types/isomorphic-fetch@0.0.34":
   version "0.0.34"
@@ -52,9 +92,9 @@ accepts@^1.3.0, accepts@~1.3.3:
     mime-types "~2.1.11"
     negotiator "0.6.1"
 
-apollo-client@^1.7.0:
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/apollo-client/-/apollo-client-1.7.0.tgz#3d6fdf6ead0a07d3e02d32d9191f26cbcfb6e4f6"
+apollo-client@^1.9.0-0:
+  version "1.9.0-0"
+  resolved "https://registry.yarnpkg.com/apollo-client/-/apollo-client-1.9.0-0.tgz#4dc835d89bab577458d6522809eb05b007408cc9"
   dependencies:
     graphql "^0.10.0"
     graphql-anywhere "^3.0.1"
@@ -110,6 +150,10 @@ bytes@2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/bytes/-/bytes-2.4.0.tgz#7d97196f9d5baf7f6935e25985549edd2a6c2339"
 
+bytes@2.5.0:
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/bytes/-/bytes-2.5.0.tgz#4c9423ea2d252c270c41b2bdefeff9bb6b62c06a"
+
 clone@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.1.tgz#d217d1e961118e3ac9a4b8bba3285553bf647cdb"
@@ -117,6 +161,24 @@ clone@^2.1.1:
 co@^4.6.0:
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/co/-/co-4.6.0.tgz#6ea6bdf3d853ae54ccb8e47bfa0bf3f9031fb184"
+
+compressible@~2.0.10:
+  version "2.0.10"
+  resolved "https://registry.yarnpkg.com/compressible/-/compressible-2.0.10.tgz#feda1c7f7617912732b29bf8cf26252a20b9eecd"
+  dependencies:
+    mime-db ">= 1.27.0 < 2"
+
+compression@^1.7.0:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/compression/-/compression-1.7.0.tgz#030c9f198f1643a057d776a738e922da4373012d"
+  dependencies:
+    accepts "~1.3.3"
+    bytes "2.5.0"
+    compressible "~2.0.10"
+    debug "2.6.8"
+    on-headers "~1.0.1"
+    safe-buffer "5.1.1"
+    vary "~1.1.1"
 
 content-disposition@0.5.2:
   version "0.5.2"
@@ -144,6 +206,12 @@ debug@2.6.7:
   dependencies:
     ms "2.0.0"
 
+debug@2.6.8, debug@^2.6.6, debug@^2.6.8:
+  version "2.6.8"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.8.tgz#e731531ca2ede27d188222427da17821d68ff4fc"
+  dependencies:
+    ms "2.0.0"
+
 deep-equal@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.0.1.tgz#f5d260292b660e084eff4cdbc9f08ad3247448b5"
@@ -156,9 +224,9 @@ destroy@~1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.0.4.tgz#978857442c44749e4206613e37946205826abd80"
 
-dynogels@^8.0.1:
+dynogels@^8.0.1, dynogels@mvayngrib/dynogels:
   version "8.0.1"
-  resolved "https://registry.yarnpkg.com/dynogels/-/dynogels-8.0.1.tgz#64429c38beae960d1c37302039da10ccd2c4a31b"
+  resolved "https://codeload.github.com/mvayngrib/dynogels/tar.gz/e83b96157395db63cbd7cd3caf38e0655936f8a2"
   dependencies:
     async "2.4.1"
     aws-sdk "2.58.0"
@@ -179,12 +247,6 @@ encoding@^0.1.11:
   resolved "https://registry.yarnpkg.com/encoding/-/encoding-0.1.12.tgz#538b66f3ee62cd1ab51ec323829d1f9480c74beb"
   dependencies:
     iconv-lite "~0.4.13"
-
-error-ex@^1.3.1:
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/error-ex/-/error-ex-1.3.1.tgz#f855a86ce61adc4e8621c3cda21e7a7612c3a8dc"
-  dependencies:
-    is-arrayish "^0.2.1"
 
 escape-html@~1.0.3:
   version "1.0.3"
@@ -287,15 +349,15 @@ graphql-type-json@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/graphql-type-json/-/graphql-type-json-0.1.4.tgz#89f13f5d32ce08c9a76c79fdf9c1968384d81a4e"
 
-graphql@^0.10.0, graphql@^0.10.3:
-  version "0.10.3"
-  resolved "https://registry.yarnpkg.com/graphql/-/graphql-0.10.3.tgz#c313afd5518e673351bee18fb63e2a0e487407ab"
+graphql@^0.10.0, graphql@^0.10.4:
+  version "0.10.5"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-0.10.5.tgz#c9be17ca2bdfdbd134077ffd9bbaa48b8becd298"
   dependencies:
     iterall "^1.1.0"
 
 hoek@4.x.x:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/hoek/-/hoek-4.1.1.tgz#9cc573ffba2b7b408fb5e9c2a13796be94cddce9"
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/hoek/-/hoek-4.2.0.tgz#72d9d0754f7fe25ca2d01ad8f8f9a9449a89526d"
 
 http-errors@^1.3.0, http-errors@~1.6.1:
   version "1.6.1"
@@ -329,10 +391,6 @@ inherits@2.0.3, inherits@^2.0.1:
 ipaddr.js@1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/ipaddr.js/-/ipaddr.js-1.3.0.tgz#1e03a52fdad83a8bbb2b25cbf4998b4cffcd3dec"
-
-is-arrayish@^0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/is-arrayish/-/is-arrayish-0.2.1.tgz#77c99840527aa8ecb1a8ba697b80645a7a926a9d"
 
 is-extendable@^0.1.1:
   version "0.1.1"
@@ -436,6 +494,10 @@ methods@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/methods/-/methods-1.1.2.tgz#5529a4d67654134edcc5266656835b0f851afcee"
 
+"mime-db@>= 1.27.0 < 2":
+  version "1.29.0"
+  resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.29.0.tgz#48d26d235589651704ac5916ca06001914266878"
+
 mime-db@~1.27.0:
   version "1.27.0"
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.27.0.tgz#820f572296bbd20ec25ed55e5b5de869e5436eb1"
@@ -488,6 +550,10 @@ on-finished@~2.3.0:
   dependencies:
     ee-first "1.1.1"
 
+on-headers@~1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/on-headers/-/on-headers-1.0.1.tgz#928f5d0f470d49342651ea6794b0857c100693f7"
+
 parseurl@~1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/parseurl/-/parseurl-1.3.1.tgz#c8ab8c9223ba34888aa64a297b28853bec18da56"
@@ -501,8 +567,8 @@ pify@^3.0.0:
   resolved "https://registry.yarnpkg.com/pify/-/pify-3.0.0.tgz#e5a4acd2c101fdf3d9a4d07f0dbc4db49dd28176"
 
 prettier@^1.3.1:
-  version "1.5.2"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-1.5.2.tgz#7ea0751da27b93bfb6cecfcec509994f52d83bb3"
+  version "1.5.3"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-1.5.3.tgz#59dadc683345ec6b88f88b94ed4ae7e1da394bfe"
 
 proxy-addr@~1.1.4:
   version "1.1.4"
@@ -536,13 +602,17 @@ raw-body@^2.1.0:
     unpipe "1.0.0"
 
 redux@^3.4.0:
-  version "3.7.1"
-  resolved "https://registry.yarnpkg.com/redux/-/redux-3.7.1.tgz#bfc535c757d3849562ead0af18ac52122cd7268e"
+  version "3.7.2"
+  resolved "https://registry.yarnpkg.com/redux/-/redux-3.7.2.tgz#06b73123215901d25d065be342eb026bc1c8537b"
   dependencies:
     lodash "^4.2.1"
     lodash-es "^4.2.1"
     loose-envify "^1.1.0"
     symbol-observable "^1.0.3"
+
+safe-buffer@5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.1.1.tgz#893312af69b2123def71f57889001671eeb2c853"
 
 sax@1.2.1:
   version "1.2.1"
