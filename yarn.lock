@@ -4,7 +4,7 @@
 
 "@tradle/custom-models@https://github.com/tradle/custom-models":
   version "4.10.10"
-  resolved "https://github.com/tradle/custom-models#3e51ee7cd842350c571abd1bb002001dbe0261bb"
+  resolved "https://github.com/tradle/custom-models#f9cb1d647cb7669748438fe38e38d6b371f2ba03"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
@@ -29,7 +29,7 @@
 
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
-  resolved "https://github.com/tradle/models#d3e45d68764a7bd9805cea01b51cc1d8b3f9bf32"
+  resolved "https://github.com/tradle/models#5468b664c06520606ed830696e1aafbeda937801"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
@@ -68,7 +68,7 @@
 
 "@tradle/validate-resource@tradle/validate-resource":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/bff9df32435fe9828fab3e7544f92e906a8eea35"
+  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/488a74d590efec7e4eaa5d26af0ad95b4698d9d0"
   dependencies:
     object.omit "^2.0.1"
     object.pick "^1.2.0"
@@ -225,7 +225,17 @@ destroy@~1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.0.4.tgz#978857442c44749e4206613e37946205826abd80"
 
-dynogels@^8.0.1, dynogels@mvayngrib/dynogels:
+dynogels@^8.0.1:
+  version "8.0.1"
+  resolved "https://registry.yarnpkg.com/dynogels/-/dynogels-8.0.1.tgz#64429c38beae960d1c37302039da10ccd2c4a31b"
+  dependencies:
+    async "2.4.1"
+    aws-sdk "2.58.0"
+    joi "10.5.0"
+    lodash "4.17.4"
+    uuid "3.0.1"
+
+dynogels@mvayngrib/dynogels:
   version "8.0.1"
   resolved "https://codeload.github.com/mvayngrib/dynogels/tar.gz/e83b96157395db63cbd7cd3caf38e0655936f8a2"
   dependencies:
