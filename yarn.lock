@@ -12,17 +12,18 @@
 
 "@tradle/dynamodb@tradle/dynamodb":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/dynamodb/tar.gz/0002ac9a030c2a8d8833bf5ee8ce2f811e0563c4"
+  resolved "https://codeload.github.com/tradle/dynamodb/tar.gz/7430fd062f2517529f9b1043a03aa6c33054e10e"
   dependencies:
     bindall "^2.0.1"
     clone "^2.1.1"
     co "^4.6.0"
     debug "^2.6.8"
     deep-equal "^1.0.1"
-    dynogels "^8.0.1"
+    dynogels mvayngrib/dynogels
     object.omit "^2.0.1"
     object.pick "^1.2.0"
     pify "^3.0.0"
+    traverse "^0.6.6"
     typeforce "^1.11.1"
     xtend "^4.0.1"
 
