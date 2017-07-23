@@ -6,12 +6,30 @@ const { utils } = require('@tradle/validate-resource')
 const fixtures = require('./fixtures')
   .filter(fix => {
     const type = fix._t
-    return models[type] //&& type !== 'tradle.ProductList'
+    return models[type] && type !== 'tradle.ProductList'
   })
   .map(res => fixResource(res))
 
 function fixResource (res, model) {
   if (!model) model = models[res._t]
+
+  if (res._r) {
+    res._permalink = res._r
+    delete res._r
+  }
+
+  if (res._c) {
+    res._link = res._c
+    delete res._c
+  }
+
+  if (res.from) {
+    res._author = res.from.id.split('_')[1]
+    delete res.from
+  }
+
+  delete res.to
+  delete res._appSubmitted
 
   const { properties } = model
   if (res.time) res._time = '' + res.time
