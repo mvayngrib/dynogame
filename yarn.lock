@@ -12,7 +12,7 @@
 
 "@tradle/dynamodb@tradle/dynamodb":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/dynamodb/tar.gz/7430fd062f2517529f9b1043a03aa6c33054e10e"
+  resolved "https://codeload.github.com/tradle/dynamodb/tar.gz/481c3138d3c1797dbcea2733acae254ce3fe36fa"
   dependencies:
     bindall "^2.0.1"
     clone "^2.1.1"
@@ -29,7 +29,7 @@
 
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
-  resolved "https://github.com/tradle/models#5468b664c06520606ed830696e1aafbeda937801"
+  resolved "https://github.com/tradle/models#ce37b7e75e9fda6dfac73f7bfb610b34fce4a684"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"
@@ -59,7 +59,7 @@
 
 "@tradle/validate-model@tradle/validate-model":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/ba39da038d63e237fd969cb2449c36e92a2edc3c"
+  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/12bc1533e8ded2efaef7e127045b28530fd07371"
   dependencies:
     object.omit "^2.0.1"
     object.pick "^1.2.0"
@@ -78,13 +78,17 @@
   version "2.0.40"
   resolved "https://registry.yarnpkg.com/@types/async/-/async-2.0.40.tgz#ac02de68e66c004a61b7cb16df8b1db3a254cca9"
 
-"@types/graphql@^0.9.0":
+"@types/graphql@^0.9.0", "@types/graphql@^0.9.4":
   version "0.9.4"
   resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-0.9.4.tgz#cdeb6bcbef9b6c584374b81aa7f48ecf3da404fa"
 
 "@types/isomorphic-fetch@0.0.34":
   version "0.0.34"
   resolved "https://registry.yarnpkg.com/@types/isomorphic-fetch/-/isomorphic-fetch-0.0.34.tgz#3c3483e606c041378438e951464f00e4e60706d6"
+
+"@types/zen-observable@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@types/zen-observable/-/zen-observable-0.5.1.tgz#c0eab942b4d52934f396de0cd8e2e63fc92a3307"
 
 accepts@^1.3.0, accepts@~1.3.3:
   version "1.3.3"
@@ -94,9 +98,10 @@ accepts@^1.3.0, accepts@~1.3.3:
     negotiator "0.6.1"
 
 apollo-client@^1.9.0-0:
-  version "1.9.0-0"
-  resolved "https://registry.yarnpkg.com/apollo-client/-/apollo-client-1.9.0-0.tgz#4dc835d89bab577458d6522809eb05b007408cc9"
+  version "1.9.0-1"
+  resolved "https://registry.yarnpkg.com/apollo-client/-/apollo-client-1.9.0-1.tgz#4f5dccb95e0413b884af91b68552618be8a7411c"
   dependencies:
+    apollo-link "^0.0.3"
     graphql "^0.10.0"
     graphql-anywhere "^3.0.1"
     graphql-tag "^2.0.0"
@@ -107,6 +112,24 @@ apollo-client@^1.9.0-0:
     "@types/async" "^2.0.31"
     "@types/graphql" "^0.9.0"
     "@types/isomorphic-fetch" "0.0.34"
+
+apollo-fetch@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/apollo-fetch/-/apollo-fetch-0.3.0.tgz#30a88346252e9bb4b969f93f3b23ecd748f84e68"
+  dependencies:
+    isomorphic-fetch "^2.2.1"
+
+apollo-link@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/apollo-link/-/apollo-link-0.0.3.tgz#9b02db8def792688e14f8be8b30f716f7789acb9"
+  dependencies:
+    apollo-fetch "^0.3.0"
+    graphql "^0.10.3"
+    graphql-tag "^2.4.2"
+    zen-observable "git+https://github.com/evanshauser/zen-observable.git"
+  optionalDependencies:
+    "@types/graphql" "^0.9.4"
+    "@types/zen-observable" "^0.5.1"
 
 array-flatten@1.1.1:
   version "1.1.1"
@@ -225,17 +248,7 @@ destroy@~1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.0.4.tgz#978857442c44749e4206613e37946205826abd80"
 
-dynogels@^8.0.1:
-  version "8.0.1"
-  resolved "https://registry.yarnpkg.com/dynogels/-/dynogels-8.0.1.tgz#64429c38beae960d1c37302039da10ccd2c4a31b"
-  dependencies:
-    async "2.4.1"
-    aws-sdk "2.58.0"
-    joi "10.5.0"
-    lodash "4.17.4"
-    uuid "3.0.1"
-
-dynogels@mvayngrib/dynogels:
+dynogels@^8.0.1, dynogels@mvayngrib/dynogels:
   version "8.0.1"
   resolved "https://codeload.github.com/mvayngrib/dynogels/tar.gz/e83b96157395db63cbd7cd3caf38e0655936f8a2"
   dependencies:
@@ -360,7 +373,7 @@ graphql-type-json@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/graphql-type-json/-/graphql-type-json-0.1.4.tgz#89f13f5d32ce08c9a76c79fdf9c1968384d81a4e"
 
-graphql@^0.10.0, graphql@^0.10.4:
+graphql@^0.10.0, graphql@^0.10.3, graphql@^0.10.4:
   version "0.10.5"
   resolved "https://registry.yarnpkg.com/graphql/-/graphql-0.10.5.tgz#c9be17ca2bdfdbd134077ffd9bbaa48b8becd298"
   dependencies:
@@ -756,3 +769,7 @@ xmlbuilder@4.2.1, xmlbuilder@^4.1.0:
 xtend@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.1.tgz#a5c6d532be656e23db820efb943a1f04998d63af"
+
+"zen-observable@git+https://github.com/evanshauser/zen-observable.git":
+  version "0.5.2"
+  resolved "git+https://github.com/evanshauser/zen-observable.git#a11ee4bd848f381898b6cd93c769eb1dcc0febf6"
