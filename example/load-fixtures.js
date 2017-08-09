@@ -7,7 +7,7 @@ const co = require('co').wrap
 const objects = require('./objects')
 const models = require('./models')
 const tables = require('@tradle/dynamodb')
-  .createTables({ objects, models })
+  .createTables({ objects, models, maxItemSize: 5000 })
 
 co(function* () {
   const time = String(1499486259331)
