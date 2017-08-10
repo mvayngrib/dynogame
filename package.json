@@ -6,27 +6,21 @@
   "dependencies": {
     "@tradle/dynamodb": "tradle/dynamodb",
     "@tradle/models": "https://github.com/tradle/models",
+    "@tradle/custom-models": "https://github.com/tradle/custom-models",
+    "@tradle/schema-graphql": "tradle/schema-graphql",
+    "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/validate-model": "tradle/validate-model",
+    "@tradle/validate-resource": "tradle/validate-resource",
     "apollo-client": "^1.9.0-0",
     "co": "^4.6.0",
     "compression": "^1.7.0",
-    "dynogels": "^8.0.1",
+    "dynogels": "mvayngrib/dynogels",
     "express": "^4.15.3",
     "express-graphql": "^0.6.6",
     "graphql-tag": "^2.4.2",
     "isomorphic-fetch": "^2.2.1",
+    "joi": "10.5.0",
     "lowdb": "^0.16.2"
-  },
-  "devDependencies": {
-    "@tradle/custom-models": "https://github.com/tradle/custom-models",
-    "@tradle/schema-graphql": "tradle/schema-graphql",
-    "@tradle/schema-joi": "https://github.com/tradle/schema-joi",
-    "@tradle/validate-resource": "tradle/validate-resource"
-  },
-  "peerDependencies": {
-    "@tradle/schema-graphql": "*",
-    "@tradle/schema-joi": "*",
-    "@tradle/validate-resource": "*"
   },
   "scripts": {
     "dynamo": "docker run -p 4569:8000 -it --rm instructure/dynamo-local-admin",
