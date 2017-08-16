@@ -19,14 +19,26 @@ co(function* () {
   }, 1000).unref()
 
   yield objects.set(fixtures)
-  yield fixtures.map(co(function* (fixture) {
+  const byTable = {}
+  for (const fixture of fixtures) {
     const type = fixture._t
-    i++
-    if (!fixture._time) {
-      fixture._time = time + i
+    if (!byTable[type]) {
+      byTable[type] = []
     }
 
-    yield tables[type].create(fixture)
-    saved++
+    byTable[type].push(fixture)
+  }
+
+  yield Object.keys(byTable).map(co(function* (type) {
+    yield byTable[type].map(co(function* (fixture) {
+      // const type = fixture._t
+      i++
+      if (!fixture._time) {
+        fixture._time = time + i
+      }
+
+      yield tables[type].create(fixture)
+      saved++
+    }))
   }))
 })().catch(console.error)

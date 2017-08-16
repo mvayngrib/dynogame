@@ -23,6 +23,10 @@ function fixResource (res, model) {
     delete res._c
   }
 
+  if (res._p && !res._r) {
+    res._r = res._p
+  }
+
   if (res.from) {
     res._author = res.from.id.split('_')[1]
     delete res.from
