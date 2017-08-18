@@ -4,9 +4,11 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@tradle/dynamodb": "tradle/dynamodb",
-    "@tradle/models": "https://github.com/tradle/models",
+    "@tradle/build-resource": "tradle/build-resource",
     "@tradle/custom-models": "https://github.com/tradle/custom-models",
+    "@tradle/dynamodb": "tradle/dynamodb",
+    "@tradle/engine": "^4.10.0",
+    "@tradle/models": "https://github.com/tradle/models",
     "@tradle/schema-graphql": "tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/validate-model": "tradle/validate-model",
@@ -28,6 +30,8 @@
     "start": "yarn server",
     "server": "DEBUG=*tradle* node example/server",
     "client": "DEBUG=*tradle* node example/client",
+    "debug": "yarn debug:server",
+    "debug-brk": "yarn debug-brk:server",
     "debug:server": "DEBUG=*tradle* node --debug --inspect example/server",
     "debug-brk:server": "DEBUG=*tradle* node --debug-brk --inspect example/server"
   },
