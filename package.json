@@ -14,6 +14,7 @@
     "@tradle/validate-model": "tradle/validate-model",
     "@tradle/validate-resource": "tradle/validate-resource",
     "apollo-client": "^1.9.0-0",
+    "aws-sdk": "^2.100.0",
     "co": "^4.6.0",
     "compression": "^1.7.0",
     "dynogels": "mvayngrib/dynogels",
@@ -26,7 +27,7 @@
   },
   "scripts": {
     "dynamo": "docker run -p 4569:8000 -it --rm instructure/dynamo-local-admin",
-    "loadfixtures": "node example/fixfixtures.js && DEBUG=*tradle* node ./example/load-fixtures.js ./example/fixtures-fixed.json",
+    "loadfixtures": "DEBUG=*tradle* node ./example/load-fixtures.js ./example/fixtures.json",
     "start": "yarn server",
     "server": "DEBUG=*tradle* node example/server",
     "client": "DEBUG=*tradle* node example/client",

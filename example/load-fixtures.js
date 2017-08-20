@@ -4,19 +4,22 @@ require('./local-config')
 const path = require('path')
 const fixtures = require(path.resolve(process.argv[2]))
 const co = require('co').wrap
+const { AWS } = require('dynogels')
 const objects = require('./objects')
 const models = require('./models')
+const docClient = new AWS.DynamoDB.DocumentClient({
+  endpoint: 'http://localhost:4569',
+  region: 'us-east-1'
+})
+
 const tables = require('@tradle/dynamodb')
-  .createTables({ objects, models, maxItemSize: 5000 })
+  .createTables({ objects, models, maxItemSize: 5000, docClient })
 
 co(function* () {
   const time = String(1499486259331)
   let i = 0
   let saved = 0
-
-  setInterval(function () {
-    console.log(`put ${saved}/${fixtures.length} items`)
-  }, 1000).unref()
+  let saving = 0
 
   yield objects.set(fixtures)
   const byTable = {}
@@ -29,16 +32,12 @@ co(function* () {
     byTable[type].push(fixture)
   }
 
+  console.log('patience...')
   yield Object.keys(byTable).map(co(function* (type) {
-    yield byTable[type].map(co(function* (fixture) {
-      // const type = fixture._t
-      i++
-      if (!fixture._time) {
-        fixture._time = time + i
-      }
-
-      yield tables[type].create(fixture)
-      saved++
-    }))
+    saving += byTable[type].length
+    yield tables[type].batchPut(byTable[type])
+    saving -= byTable[type].length
+    saved += byTable[type].length
+    console.log(`${saved}/${fixtures.length} items saved`)
   }))
 })().catch(console.error)
