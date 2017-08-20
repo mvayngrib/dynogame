@@ -27,7 +27,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#aefca4bc3b82dc423591123144f81ae65a5e772c"
+      "resolved": "git://github.com/tradle/dynamodb.git#7e40515663096f384808d844504e4740ac60b975"
     },
     "@tradle/engine": {
       "version": "4.10.0",
@@ -47,7 +47,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#ff2b6e1ff9fbc39cc3eced0f64b6f211f1987bc8"
+      "resolved": "git://github.com/tradle/schema-graphql.git#c2c1542ccc806b86bb11e1933e14a10e06582563"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -643,6 +643,11 @@
       "version": "3.1.0",
       "from": "graphql-anywhere@>=3.0.1 <4.0.0",
       "resolved": "https://registry.npmjs.org/graphql-anywhere/-/graphql-anywhere-3.1.0.tgz"
+    },
+    "graphql-fields": {
+      "version": "1.0.2",
+      "from": "graphql-fields@>=1.0.2 <2.0.0",
+      "resolved": "https://registry.npmjs.org/graphql-fields/-/graphql-fields-1.0.2.tgz"
     },
     "graphql-relay": {
       "version": "0.5.2",

@@ -6,10 +6,10 @@
   "dependencies": {
     "@tradle/build-resource": "tradle/build-resource",
     "@tradle/custom-models": "https://github.com/tradle/custom-models",
-    "@tradle/dynamodb": "tradle/dynamodb",
+    "@tradle/dynamodb": "github:tradle/dynamodb",
     "@tradle/engine": "^4.10.0",
     "@tradle/models": "https://github.com/tradle/models",
-    "@tradle/schema-graphql": "tradle/schema-graphql",
+    "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/validate-model": "tradle/validate-model",
     "@tradle/validate-resource": "tradle/validate-resource",
