@@ -27,7 +27,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#7e40515663096f384808d844504e4740ac60b975"
+      "resolved": "git://github.com/tradle/dynamodb.git#02d5b307ea477d9c41b59e685274ef020e924450"
     },
     "@tradle/engine": {
       "version": "4.10.0",
