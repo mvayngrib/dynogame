@@ -12,6 +12,11 @@
       "from": "@tradle/build-resource@>=2.0.0 <3.0.0",
       "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.0.0.tgz"
     },
+    "@tradle/constants": {
+      "version": "2.1.0",
+      "from": "@tradle/constants@>=2.1.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/@tradle/constants/-/constants-2.1.0.tgz"
+    },
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
@@ -20,7 +25,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#02d5b307ea477d9c41b59e685274ef020e924450"
+      "resolved": "git://github.com/tradle/dynamodb.git#19ec1e268a836121cb391e16f702dc3ff672e534"
     },
     "@tradle/engine": {
       "version": "4.10.0",
