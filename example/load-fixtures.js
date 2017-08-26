@@ -12,8 +12,8 @@ const docClient = new AWS.DynamoDB.DocumentClient({
   region: 'us-east-1'
 })
 
-const tables = require('@tradle/dynamodb')
-  .createTables({ objects, models, maxItemSize: 5000, docClient })
+const db = require('@tradle/dynamodb')
+  .proxy({ objects, models, maxItemSize: 5000, docClient })
 
 co(function* () {
   const time = String(1499486259331)
@@ -35,9 +35,10 @@ co(function* () {
   console.log('patience...')
   yield Object.keys(byTable).map(co(function* (type) {
     saving += byTable[type].length
-    yield tables[type].batchPut(byTable[type])
+    yield db.batchPut(byTable[type])
     saving -= byTable[type].length
     saved += byTable[type].length
     console.log(`${saved}/${fixtures.length} items saved`)
   }))
+
 })().catch(console.error)

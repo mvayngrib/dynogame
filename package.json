@@ -12,7 +12,7 @@
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/validate-model": "^2.0.1",
-    "@tradle/validate-resource": "^2.0.0",
+    "@tradle/validate-resource": "^2.5.0",
     "apollo-client": "^1.9.0-0",
     "aws-sdk": "^2.100.0",
     "co": "^4.6.0",
