@@ -17,6 +17,7 @@
     "aws-sdk": "^2.100.0",
     "co": "^4.6.0",
     "compression": "^1.7.0",
+    "cors": "^2.8.4",
     "dynogels": "mvayngrib/dynogels",
     "express": "^4.15.3",
     "express-graphql": "^0.6.6",
@@ -33,8 +34,8 @@
     "client": "DEBUG=*tradle* node example/client",
     "debug": "yarn debug:server",
     "debug-brk": "yarn debug-brk:server",
-    "debug:server": "DEBUG=*tradle* node --debug --inspect example/server",
-    "debug-brk:server": "DEBUG=*tradle* node --debug-brk --inspect example/server"
+    "debug:server": "DEBUG=dynogels,*tradle* node --debug --inspect example/server",
+    "debug-brk:server": "DEBUG=dynogels,*tradle* node --debug-brk --inspect example/server"
   },
   "repository": {
     "type": "git",
