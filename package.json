@@ -8,7 +8,8 @@
     "@tradle/custom-models": "github:tradle/custom-models",
     "@tradle/dynamodb": "github:tradle/dynamodb",
     "@tradle/engine": "^4.10.0",
-    "@tradle/models": "https://github.com/tradle/models",
+    "@tradle/gen-samples": "github:tradle/gen-samples",
+    "@tradle/models": "github:tradle/models",
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/validate-model": "^2.0.1",
@@ -27,7 +28,11 @@
     "lowdb": "^0.16.2"
   },
   "scripts": {
+    "db": "cd dynamo-local && docker-compose up",
+    "api": "yarn start",
     "dynamo": "cd dynamo-local && docker-compose down && docker-compose up",
+    "gensamples": "tradle-samples ./samples-conf.js",
+    "loadsamples": "yarn loadfixtures",
     "loadfixtures": "DEBUG=*tradle* node ./example/load-fixtures.js ./example/fixtures.json",
     "start": "yarn server",
     "server": "DEBUG=*tradle* node example/server",
