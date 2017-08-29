@@ -27,7 +27,7 @@
     "lowdb": "^0.16.2"
   },
   "scripts": {
-    "dynamo": "cd dynamo-local && docker-compose up",
+    "dynamo": "cd dynamo-local && docker-compose down && docker-compose up",
     "loadfixtures": "DEBUG=*tradle* node ./example/load-fixtures.js ./example/fixtures.json",
     "start": "yarn server",
     "server": "DEBUG=*tradle* node example/server",
